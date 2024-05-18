@@ -2,11 +2,11 @@
 
 ```mermaid
 flowchart TD
-    A[बेनी माधव मिश्रा] ->|Get money| B(Go shopping)
+    A[बेनी माधव मिश्रा] -->|Get money| B(Go shopping)
     A[बेनी माधव मिश्रा] --->|Get money| C(Go shopping)
     A[बेनी माधव मिश्रा] ---->|Get money| D(Go shopping)
-    A[बेनी माधव मिश्रा] -->|Get money| E(Go shopping)
-    A[बेनी माधव मिश्रा] -->|Get money| F(Go shopping)
+    A[बेनी माधव मिश्रा] --->|Get money| E(Go shopping)
+    A[बेनी माधव मिश्रा] ---->|Get money| F(Go shopping)
     B --> BA(Let me think)
     B --> BB(Let me think)
     B --> BC(Let me think)
