@@ -1,12 +1,11 @@
 # portfolio
 
 ```mermaid
-graph TD;
- " बेनी माधव मिश्रा "-->B;
- " बेनी माधव मिश्रा "-->C;
- " बेनी माधव मिश्रा "-->D;
-  B-->E;
-  B-->F
-  C-->G;
+flowchart TD
+    A[" बेनी माधव "] -->|Get money| B(Go shopping)
+    B --> C{Let me think}
+    C -->|One| D[Laptop]
+    C -->|Two| E[iPhone]
+    C -->|Three| F[fa:fa-car Car]
 ```
 
