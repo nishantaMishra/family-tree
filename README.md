@@ -22,7 +22,6 @@ flowchart TD
 ```
 ```mermaid
 mindmap
-
   root((अज्ञात))
     बेनी माधव मिश्रा
     राम आश्रय
