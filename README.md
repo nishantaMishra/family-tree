@@ -9,3 +9,11 @@ flowchart TD
     C -->|Three| F[fa:fa-car Car]
 ```
 
+```mermaid
+flowchart TD
+    A[" "] -->|Get money| B(Go shopping)
+    B --> C{Let me think}
+    C -->|One| D[Laptop]
+    C -->|Two| E[iPhone]
+    C -->|Three| F[fa:fa-car Car]
+```
