@@ -2,7 +2,7 @@
 
 ```mermaid
 flowchart TD
-    A[बेनी माधव मिश्रा] -->|Get money| B(Go shopping)
+    A[बेनी माधव मिश्रा] ->|Get money| B(Go shopping)
     A[बेनी माधव मिश्रा] --->|Get money| C(Go shopping)
     A[बेनी माधव मिश्रा] ---->|Get money| D(Go shopping)
     A[बेनी माधव मिश्रा] -->|Get money| E(Go shopping)
