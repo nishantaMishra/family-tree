@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Mind Map</title>
+    <script src="https://unpkg.com/mindmup-mapjs"></script>
+    <style>
+        #mindmap-container {
+            height: 600px;
+            border: 1px solid #ccc;
+            margin: 20px;
+            box-sizing: border-box;
+        }
+    </style>
+</head>
+<body>
+    <div id="mindmap-container"></div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Define the mind map data
+            var mindmapData = {
+                "title": "Root Node",
+                "ideas": {
+                    "1": { "title": "Level 1", "ideas": {
+                        "2": { "title": "Level 2", "ideas": {
+                            "3": { "title": "Level 3", "ideas": {
+                                "4": { "title": "Level 4", "ideas": {
+                                    "5": { "title": "Level 5", "ideas": {
+                                        "6": { "title": "Level 6", "ideas": {
+                                            "7": { "title": "Level 7" }
+                                        }}
+                                    }}
+                                }}
+                            }}
+                        }}
+                    }}
+                }
+            };
+
+            // Initialize the mind map
+            var mapOptions = {
+                container: 'mindmap-container',
+                map: mindmapData,
+                editable: false // Set to true if you want to allow editing
+            };
+
+            var map = new MindMap(mapOptions);
+
+            // Collapse all nodes initially (except root node)
+            collapseAllNodes(map, '1'); // Start collapsing from Level 1
+
+            // Function to collapse all nodes except the specified level
+            function collapseAllNodes(map, exceptNodeId) {
+                var nodeIds = Object.keys(map.getIdea().ideas);
+                nodeIds.forEach(function(nodeId) {
+                    if (nodeId !== exceptNodeId) {
+                        map.collapse(nodeId);
+                    }
+                });
+            }
+        });
+    </script>
+</body>
+</html>
+
