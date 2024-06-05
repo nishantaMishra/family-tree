@@ -1,67 +1,182 @@
+
 <!DOCTYPE html>
-<html lang="en">
+<html lang="hi">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Interactive Mind Map</title>
-    <script src="https://unpkg.com/mindmup-mapjs"></script>
+    <title>Mishra Family Chart</title>
     <style>
-        #mindmap-container {
-            height: 600px;
-            border: 1px solid #ccc;
-            margin: 20px;
-            box-sizing: border-box;
+        body {
+            font-family: Arial, sans-serif;
+        }
+        .node {
+            cursor: pointer;
+        }
+        .node circle {
+            fill: #999;
+            stroke: steelblue;
+            stroke-width: 3px;
+        }
+        .node text {
+            font: 12px sans-serif;
+        }
+        .link {
+            fill: none;
+            stroke: #555;
+            stroke-opacity: 0.4;
+            stroke-width: 1.5px;
+        }
+        #bottombar {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            background-color: #f4f4f4;
+            border-top: 1px solid #ddd;
+            padding: 20px;
+            box-shadow: 0 -2px 5px rgba(0,0,0,0.1);
+            overflow-y: auto;
+            height: 200px;
         }
     </style>
+    <script src="https://d3js.org/d3.v5.min.js"></script>
 </head>
 <body>
-    <div id="mindmap-container"></div>
-
+    <div id="bottombar">
+        <h2>इतिहास</h2>
+        <div id="details">जानकारी देखने के लिए व्यक्ति के नाम के स्पर्श करें।.</div>
+    </div>
     <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            // Define the mind map data
-            var mindmapData = {
-                "title": "Root Node",
-                "ideas": {
-                    "1": { "title": "Level 1", "ideas": {
-                        "2": { "title": "Level 2", "ideas": {
-                            "3": { "title": "Level 3", "ideas": {
-                                "4": { "title": "Level 4", "ideas": {
-                                    "5": { "title": "Level 5", "ideas": {
-                                        "6": { "title": "Level 6", "ideas": {
-                                            "7": { "title": "Level 7" }
-                                        }}
-                                    }}
-                                }}
-                            }}
-                        }}
-                    }}
-                }
-            };
+        var data = {"name": "\u092a\u094d\u0930\u092a\u093f\u0924\u093e\u092e\u0939", "children": [{"name": "\u092c\u0947\u0928\u0940\u092e\u093e\u0927\u0935", "children": [{"name": "\u0930\u093e\u092e \u0915\u0943\u092a\u093e\u0932 \u092e\u093f\u0936\u094d\u0930\u093e", "children": [{"name": "\u0938\u0924\u094d\u092f\u092a\u093e\u0932(\u0905\u0928\u094d\u0928\u0942) \u092e\u093f\u0936\u094d\u0930\u093e", "children": [{"name": "\u0915\u0928\u094d\u0927\u0948\u092f\u093e"}, {"name": "\u0968"}]}, {"name": "\u0915\u0943\u0937\u094d\u0923\u092a\u093e\u0932(\u0915\u092e\u0932\u0947\u0936) \u092e\u093f\u0936\u094d\u0930\u093e", "children": [{"name": "\u0938\u094b\u0928\u0942"}]}, {"name": "\u092c\u093f\u0928\u094d\u0926\u0941(\u0917\u0941\u0932\u093e\u092c\u0915\u0932\u0940) \u092e\u093f\u0936\u094d\u0930\u093e"}, {"name": "\u0928\u093e\u0928\u092c\u0941\u0926\u0940"}, {"name": "\u092e\u0940\u0928\u0942"}]}, {"name": "\u0930\u093e\u092e \u0936\u093f\u0930\u094b\u092e\u0923\u093f \u092e\u093f\u0936\u094d\u0930\u093e", "children": [{"name": "\u0926\u092f\u093e\u0936\u0919\u094d\u0915\u0930 \u092e\u093f\u0936\u094d\u0930\u093e", "children": [{"name": "\u0909\u0926\u092f"}, {"name": "\u091b\u094b\u091f\u0915\u094c"}]}, {"name": "\u0909\u092e\u093e\u0936\u0919\u094d\u0915\u0930 \u092e\u093f\u0936\u094d\u0930\u093e", "children": [{"name": "\u092c\u092c\u0932\u0942"}, {"name": "\u091d\u0932\u094d\u0932\u0942"}, {"name": "\u092b\u0941\u0928\u094d\u0928\u0942"}]}, {"name": "\u0969"}, {"name": "\u096a"}, {"name": "\u096b"}]}, {"name": "\u0930\u092e\u091c\u0928\u093f\u092f\u093e"}, {"name": "\u0938\u0941\u0926\u093e\u092e\u093e \u092a\u094d\u0930\u0938\u093e\u0926 \u092e\u093f\u0936\u094d\u0930\u093e", "children": [{"name": "\u0938\u0941\u0930\u094b\u0936 \u092e\u093f\u0936\u094d\u0930\u093e", "children": [{"name": "\u092a\u094d\u0930\u092e\u094b\u0926 (\u0924\u094d\u092f\u093e\u0917\u0940)"}, {"name": "\u0935\u093f\u0928\u094b\u0926 (\u0915\u0932\u094d\u0932\u0942)"}, {"name": "\u0906\u0928\u0928\u094d\u0926"}]}, {"name": "\u092e\u0941\u0928\u0947\u0936", "children": [{"name": "\u0935\u093f\u0915\u093e\u0938"}, {"name": "\u0916\u0941\u0936\u092c\u0942"}, {"name": "\u0938\u0941\u092d\u093e\u0937"}]}, {"name": "\u0938\u0941\u0928\u0940\u0924\u093e"}, {"name": "\u0917\u0940\u0924\u093e"}, {"name": "\u0938\u0940\u0924\u093e", "details": "\u0907\u0928\u0915\u093e \u0928\u093f\u0927\u0928 \u0906\u0924\u094d\u092e\u0926\u093e\u0939 \u0938\u0947 \u0939\u0941\u0906 \u0925\u093e"}, {"name": "\u092e\u092e\u0924\u093e"}]}, {"name": "\u0930\u093e\u092e \u0938\u0942\u0930\u0924 \u092e\u093f\u0936\u094d\u0930\u093e", "children": [{"name": "\u0905\u0928\u0941\u0930\u093e\u0927\u093e \u0924\u093f\u0935\u093e\u0930\u0940", "children": [{"name": "\u0905\u0928\u0941\u0930\u093e\u0917 \u0924\u093f\u0935\u093e\u0930\u0940"}, {"name": "\u0905\u0902\u0936\u0941 \u0924\u093f\u0935\u093e\u0930\u0940"}]}, {"name": "\u0936\u094d\u0930\u0935\u0923 \u0915\u0941\u092e\u093e\u0930 \u092e\u093f\u0936\u094d\u0930\u093e", "children": [{"name": "\u091a\u0947\u0924\u0928\u093e"}, {"name": "\u092d\u093e\u0935\u0928\u093e"}, {"name": "\u092a\u094d\u0930\u0947\u0930\u0923\u093e", "url": "https://www.instagram.com/mishraprerna269/"}, {"name": "\u0928\u093f\u0936\u093e\u0928\u094d\u0924 \u092e\u093f\u0936\u094d\u0930\u093e"}]}, {"name": "\u0906\u0936\u093f\u0937 \u0915\u0941\u092e\u093e\u0930 \u092e\u093f\u0936\u094d\u0930\u093e"}]}]}, {"name": "\u0930\u093e\u092e \u0906\u0936\u094d\u0930\u092f", "children": [{"name": "\u0930\u093e\u092e \u092a\u094d\u0930\u0938\u093e\u0926 \u092e\u093f\u0936\u094d\u0930\u093e", "children": [{"name": "\u0905\u0936\u094b\u0915 \u092a\u094d\u0930\u0938\u093e\u0926 (\u092e\u0941\u0928\u094d\u0928\u0942)"}, {"name": "\u092e\u0928\u094b\u091c"}, {"name": "\u092a\u094d\u0930\u0926\u0940\u092a (\u091b\u094b\u091f\u0915\u094c)"}, {"name": "\u0917\u0941\u0921\u094d\u0921\u0928\u094d"}, {"name": "\u0915\u0930\u0941\u0923\u093e"}, {"name": "\u092a\u0941\u0937\u094d\u092a\u093e"}, {"name": "\u0938\u0941\u0927\u093e"}]}, {"name": "\u0938\u093e\u0935\u093f\u0924\u094d\u0930\u0940"}]}, {"name": "\u0928\u093e\u0930\u093e\u092f\u0923 \u0926\u0940\u0928", "children": [{"name": "\u0938\u0924\u0940\u0936", "children": [{"name": "\u0928\u0940\u0932\u0942"}, {"name": "\u0930\u0947\u0916\u093e"}, {"name": "\u0917\u0941\u0921\u094d\u0921\u0940"}]}, {"name": "\u0915\u0947\u0936\u0935", "children": [{"name": "\u0930\u093e\u0928\u0940"}, {"name": "\u0917\u0941\u0921\u094d\u0921\u0942"}, {"name": "\u0905\u091c\u094d\u091c\u0942"}]}, {"name": "\u0926\u093f\u0935\u093e\u0915\u0930", "children": [{"name": "\u0967"}, {"name": "\u0968"}, {"name": "\u0969"}, {"name": "\u096a"}, {"name": "\u096b"}]}]}]};
 
-            // Initialize the mind map
-            var mapOptions = {
-                container: 'mindmap-container',
-                map: mindmapData,
-                editable: false // Set to true if you want to allow editing
-            };
+        var margin = {top: 20, right: 120, bottom: 220, left: 120},  // Adjust bottom margin to make space for the bottom bar
+            width = 960 - margin.right - margin.left,
+            height = 800 - margin.top - margin.bottom;
 
-            var map = new MindMap(mapOptions);
+        var i = 0,
+            duration = 750,
+            root;
 
-            // Collapse all nodes initially (except root node)
-            collapseAllNodes(map, '1'); // Start collapsing from Level 1
+        var tree = d3.tree().size([height, width]);
 
-            // Function to collapse all nodes except the specified level
-            function collapseAllNodes(map, exceptNodeId) {
-                var nodeIds = Object.keys(map.getIdea().ideas);
-                nodeIds.forEach(function(nodeId) {
-                    if (nodeId !== exceptNodeId) {
-                        map.collapse(nodeId);
-                    }
-                });
+        var diagonal = d3.linkHorizontal().x(d => d.y).y(d => d.x);
+
+        var svg = d3.select("body").append("svg")
+            .attr("width", width + margin.right + margin.left)
+            .attr("height", height + margin.top + margin.bottom)
+          .append("g")
+            .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+        root = d3.hierarchy(data, d => d.children);
+        root.x0 = height / 2;
+        root.y0 = 0;
+
+        function collapse(d) {
+          if (d.children) {
+            d._children = d.children;
+            d._children.forEach(collapse);
+            d.children = null;
+          }
+        }
+
+        root.children.forEach(collapse);
+        update(root);
+
+        function update(source) {
+          var treeData = tree(root);
+
+          var nodes = treeData.descendants(),
+              links = treeData.descendants().slice(1);
+
+          nodes.forEach(d => { d.y = d.depth * 180; });
+
+          var node = svg.selectAll('g.node')
+              .data(nodes, d => d.id || (d.id = ++i));
+
+          var nodeEnter = node.enter().append('g')
+              .attr('class', 'node')
+              .attr('transform', d => 'translate(' + source.y0 + ',' + source.x0 + ')')
+              .on('click', click);
+
+          nodeEnter.append('circle')
+              .attr('class', 'node')
+              .attr('r', 1e-6)
+              .style('fill', d => d._children ? 'lightsteelblue' : '#fff');
+
+          nodeEnter.append('text')
+              .attr('dy', '.35em')
+              .attr('x', d => d._children ? -13 : 13)
+              .attr('text-anchor', d => d._children ? 'end' : 'start')
+              .text(d => d.data.name);
+
+          var nodeUpdate = nodeEnter.merge(node);
+
+          nodeUpdate.transition()
+              .duration(duration)
+              .attr('transform', d => 'translate(' + d.y + ',' + d.x + ')');
+
+          nodeUpdate.select('circle.node')
+              .attr('r', 10)
+              .style('fill', d => d._children ? 'lightsteelblue' : '#fff')
+              .attr('cursor', 'pointer');
+
+          var nodeExit = node.exit().transition()
+              .duration(duration)
+              .attr('transform', d => 'translate(' + source.y + ',' + source.x + ')')
+              .remove();
+
+          nodeExit.select('circle')
+              .attr('r', 1e-6);
+
+          nodeExit.select('text')
+              .style('fill-opacity', 1e-6);
+
+          var link = svg.selectAll('path.link')
+              .data(links, d => d.id);
+
+          var linkEnter = link.enter().insert('path', 'g')
+              .attr('class', 'link')
+              .attr('d', d => {
+                var o = {x: source.x0, y: source.y0};
+                return diagonal({source: o, target: o});
+              });
+
+          var linkUpdate = linkEnter.merge(link);
+
+          linkUpdate.transition()
+              .duration(duration)
+              .attr('d', d => diagonal({source: d.parent, target: d}));
+
+          link.exit().transition()
+              .duration(duration)
+              .attr('d', d => {
+                var o = {x: source.x, y: source.y};
+                return diagonal({source: o, target: o});
+              })
+              .remove();
+
+          nodes.forEach(d => {
+            d.x0 = d.x;
+            d.y0 = d.y;
+          });
+
+          function click(d) {
+            if (d.children) {
+              d._children = d.children;
+              d.children = null;
+            } else {
+              d.children = d._children;
+              d._children = null;
             }
-        });
+            update(d);
+            showDetails(d.data);
+          }
+        }
+
+        function showDetails(data) {
+            var detailsDiv = document.getElementById('details');
+            detailsDiv.innerHTML = '<h3>' + data.name + '</h3><p>' + data.details + '</p>';
+        }
     </script>
 </body>
 </html>
-
