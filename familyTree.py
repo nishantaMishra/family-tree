@@ -5,7 +5,7 @@ data = {
     "name": "प्रपितामह",
     "children": [
         {
-            "name": "बेनीमाधव",
+            "name": "बेनीमाधव मिश्रा",
             "children": [
                 {"name": "राम कृपाल मिश्रा",
                 "children": [
@@ -62,7 +62,7 @@ data = {
                     ]},
                     {"name": "सुनीता"},
                     {"name": "गीता"},
-                    {"name": "सीता", "details": "इनका निधन आत्मदाह से हुआ था"},
+                    {"name": "सीता", "details": "इनका निधन आत्मदाह से हुआ था।"},
                     {"name": "ममता"}
                 ]},
                 {"name": "राम सूरत मिश्रा",
@@ -84,7 +84,7 @@ data = {
             ]
         },
         {
-            "name": "राम आश्रय",
+            "name": "राम आश्रय मिश्रा",
             "children": [
                 {"name": "राम प्रसाद मिश्रा",
                 "children": [
@@ -100,7 +100,7 @@ data = {
             ]
         },
         {
-            "name": "नारायण दीन",
+            "name": "नारायण दीन मिश्रा",
             "children": [
                 {"name": "सतीश",
                 "children": [
@@ -128,10 +128,9 @@ data = {
     ]
 }
 
-# Convert data to JSON format
 data_json = json.dumps(data)
 
-# HTML template
+###### HTML template #######
 html_template = f"""
 <!DOCTYPE html>
 <html lang="hi">
@@ -178,7 +177,7 @@ html_template = f"""
 <body>
     <div id="bottombar">
         <h2>इतिहास</h2>
-        <div id="details">जानकारी देखने के लिए व्यक्ति के नाम के स्पर्श करें।.</div>
+        <div id="details">जानकारी देखने के लिए व्यक्ति के नाम के स्पर्श करें।</div>
     </div>
     <script>
         var data = {data_json};
@@ -320,5 +319,5 @@ html_template = f"""
 with open("index.html", "w") as file:
     file.write(html_template)
 
-print("Family tree  HTML file was created: index.html")
+print("Family tree HTML file was created: index.html")
 
