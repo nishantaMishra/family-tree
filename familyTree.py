@@ -29,15 +29,15 @@ data = {
                 "children": [
                     {"name": "दयाशङ्कर मिश्रा",
                     "children": [
-                        {"name": "उदय"},
+                        {"name": "उदय मिश्रा"},
                         {"name": "छोटकौ"}
                     ]
                     },
                     {"name": "उमाशङ्कर मिश्रा",
                     "children": [
-                        {"name": "बबलू"},
-                        {"name": "झल्लू"},
-                        {"name": "फुन्नू"}
+                        {"name": "बबलू मिश्रा"},
+                        {"name": "झल्लू मिश्रा"},
+                        {"name": "फुन्नू मिश्रा"}
                     ]
                     },
                     {"name": "३"},
@@ -50,15 +50,15 @@ data = {
                 "children": [
                     {"name": "सुरोश मिश्रा",
                     "children": [
-                        {"name": "प्रमोद (त्यागी)"},
-                        {"name": "विनोद (कल्लू)"},
-                        {"name": "आनन्द"}
+                        {"name": "प्रमोद मिश्रा (त्यागी)"},
+                        {"name": "विनोद मिश्रा (कल्लू)"},
+                        {"name": "आनन्द मिश्रा"}
                     ]},
                     {"name": "मुनेश",
                     "children": [
-                        {"name": "विकास"},
+                        {"name": "विकास मिश्रा"},
                         {"name": "खुशबू"},
-                        {"name": "सुभाष"}
+                        {"name": "सुभाष मिश्रा"}
                     ]},
                     {"name": "सुनीता"},
                     {"name": "गीता"},
@@ -88,9 +88,9 @@ data = {
             "children": [
                 {"name": "राम प्रसाद मिश्रा",
                 "children": [
-                    {"name": "अशोक प्रसाद (मुन्नू)"},
-                    {"name": "मनोज"},
-                    {"name": "प्रदीप (छोटकौ)"},
+                    {"name": "अशोक प्रसाद (मुन्नू) मिश्रा"},
+                    {"name": "मनोज मिश्रा"},
+                    {"name": "प्रदीप मिश्रा (छोटकौ)"},
                     {"name": "गुड्डन्"},
                     {"name": "करुणा"},
                     {"name": "पुष्पा"},
@@ -102,7 +102,7 @@ data = {
         {
             "name": "नारायण दीन मिश्रा",
             "children": [
-                {"name": "सतीश",
+                {"name": "सतीश मिश्रा",
                 "children": [
                     {"name": "नीलू"},
                     {"name": "रेखा"},
@@ -114,7 +114,7 @@ data = {
                     {"name": "गुड्डू"},
                     {"name": "अज्जू"}
                 ]},
-                {"name": "दिवाकर",
+                {"name": "दिवाकर मिश्रा",
                 "children": [
                     {"name": "१"},
                     {"name": "२"},
@@ -182,7 +182,7 @@ html_template = f"""
     <script>
         var data = {data_json};
 
-        var margin = {{top: 20, right: 120, bottom: 220, left: 120}},  // Adjust bottom margin to make space for the bottom bar
+        var margin = {{top: 20, right: 120, bottom: 220, left: 120}},  // This defines space for the bottom bar
             width = 960 - margin.right - margin.left,
             height = 800 - margin.top - margin.bottom;
 
