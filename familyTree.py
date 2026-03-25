@@ -604,10 +604,8 @@ html_template = f"""<!DOCTYPE html>
     var layoutState = {{
         depthSpacing: 210,
         yOffset: 0,
-        visibleCount: 0,
-        maxDepth: 0,
-        labelMaxChars: 32,
-        labelFontSize: 13
+        maxLabelChars: 18,
+        lineHeightPx: 18
     }};
 
     function getSize() {{
@@ -617,121 +615,42 @@ html_template = f"""<!DOCTYPE html>
         }};
     }}
 
-    function getVisibleStats(node) {{
-        if (!node) return {{count: 0, maxDepth: 0}};
-        var count = 0;
-        var maxDepth = 0;
-        (function walk(n, depth) {{
-            count += 1;
-            if (depth > maxDepth) maxDepth = depth;
-            (n.children || []).forEach(function(c) {{ walk(c, depth + 1); }});
-        }})(node, 0);
-        return {{count: count, maxDepth: maxDepth}};
-    }}
-
-    function getLayoutConfig(stats) {{
+    function getLayoutConfig() {{
         var s = getSize();
         var innerW = Math.max(220, s.w - margin.left - margin.right);
         var innerH = Math.max(220, s.h - margin.top - margin.bottom);
         var mobile = s.w <= 900;
-        var visibleCount = stats ? stats.count : 0;
-        var maxDepth = stats ? stats.maxDepth : 0;
-        var layoutH;
-        var yOffset = 0;
-
-        if (mobile) {{
-            if (visibleCount <= 8) {{
-                layoutH = Math.min(innerH, 420);
-                yOffset = Math.max(0, (innerH - layoutH) / 2);
-            }} else if (visibleCount <= 22) {{
-                layoutH = Math.min(1500, innerH * 1.35);
-            }} else {{
-                layoutH = Math.min(2600, innerH * 2.1);
-            }}
-        }} else {{
-            layoutH = innerH;
-        }}
-
-        var depthSpan = Math.max(2, maxDepth + 1);
-        var perDepth = innerW / depthSpan;
+        var visibleDepth = getVisibleDepth(root);
+        var columnCount = Math.max(2, visibleDepth + 1);
+        var layoutH = mobile ? Math.min(innerH, 420) : innerH;
+        var yOffset = mobile ? Math.max(0, (innerH - layoutH) / 2) : 0;
         var depthSpacing = mobile
-            ? Math.max(96, Math.min(160, perDepth * 0.92))
-            : Math.max(170, Math.min(260, perDepth * 1.1));
-
-        var labelMaxChars = mobile
-            ? Math.max(8, Math.min(22, Math.floor((depthSpacing - 30) / 6)))
-            : 44;
-        var labelFontSize = mobile
-            ? (visibleCount > 26 ? 10.5 : (visibleCount > 16 ? 11.5 : 12.5))
-            : 13;
-
+            ? Math.max(112, Math.min(156, s.w * 0.35))
+            : 210;
+        var approxTextWidth = mobile ? 7.2 : 7.8;
+        var availableLabelWidth = Math.max(84, (innerW / columnCount) - (depthSpacing * 0.28));
+        var maxLabelChars = Math.max(
+            mobile ? 9 : 11,
+            Math.min(mobile ? 15 : 22, Math.floor(availableLabelWidth / approxTextWidth))
+        );
         return {{
             innerW: innerW,
             layoutH: layoutH,
             depthSpacing: depthSpacing,
             yOffset: yOffset,
             isMobile: mobile,
-            visibleCount: visibleCount,
-            maxDepth: maxDepth,
-            labelMaxChars: labelMaxChars,
-            labelFontSize: labelFontSize
+            maxLabelChars: maxLabelChars,
+            lineHeightPx: mobile ? 18 : 16
         }};
     }}
 
-    function applySize(stats) {{
-        var cfg = getLayoutConfig(stats || getVisibleStats(root));
+    function applySize() {{
+        var cfg = getLayoutConfig();
         layoutState = cfg;
         treeLayout.size([
             cfg.layoutH,
             cfg.innerW
         ]);
-        treeLayout.separation(function(a, b) {{
-            var sep = a.parent === b.parent ? 1 : 1.25;
-            if (cfg.isMobile && cfg.visibleCount > 20) sep *= 1.35;
-            return sep;
-        }});
-    }}
-
-    function formatLabel(name) {{
-        if (!layoutState.isMobile) return name;
-        if (!name) return '';
-        if (name.length <= layoutState.labelMaxChars) return name;
-        return name.slice(0, layoutState.labelMaxChars - 1) + '…';
-    }}
-
-    function adjustNodeVerticalSpacing(nodes) {{
-        if (!layoutState.isMobile || nodes.length < 2) return;
-
-        var minGap = layoutState.visibleCount > 26 ? 14 : 16;
-        var depthMap = new Map();
-
-        nodes.forEach(function(n) {{
-            if (!depthMap.has(n.depth)) depthMap.set(n.depth, []);
-            depthMap.get(n.depth).push(n);
-        }});
-
-        depthMap.forEach(function(list) {{
-            if (list.length < 2) return;
-            list.sort(function(a, b) {{ return a.renderX - b.renderX; }});
-
-            var firstOrig = list[0].renderX;
-            var lastOrig = list[list.length - 1].renderX;
-
-            for (var i = 1; i < list.length; i++) {{
-                var prev = list[i - 1].renderX;
-                if (list[i].renderX - prev < minGap) {{
-                    list[i].renderX = prev + minGap;
-                }}
-            }}
-
-            var firstNew = list[0].renderX;
-            var lastNew = list[list.length - 1].renderX;
-            var recenter = ((firstOrig + lastOrig) / 2) - ((firstNew + lastNew) / 2);
-
-            list.forEach(function(n) {{
-                n.renderX += recenter;
-            }});
-        }});
     }}
 
     function fitTreeToViewport(animated) {{
@@ -743,10 +662,16 @@ html_template = f"""<!DOCTYPE html>
 
         nodes.forEach(function(n) {{
             var x = n.renderX !== undefined ? n.renderX : n.x;
-            if (x < minX) minX = x;
-            if (x > maxX) maxX = x;
-            if (n.y < minY) minY = n.y;
-            if (n.y > maxY) maxY = n.y;
+            var labelHeight = Math.max(1, (n._labelLines || 1) * layoutState.lineHeightPx);
+            var labelWidth = Math.max(42, estimateLabelWidth(n));
+            var leftY = n.y - 18;
+            var rightY = n.y + 18 + labelWidth;
+            var topX = x - Math.max(18, labelHeight / 2);
+            var bottomX = x + Math.max(18, labelHeight / 2);
+            if (topX < minX) minX = topX;
+            if (bottomX > maxX) maxX = bottomX;
+            if (leftY < minY) minY = leftY;
+            if (rightY > maxY) maxY = rightY;
         }});
 
         var s = getSize();
@@ -772,7 +697,11 @@ html_template = f"""<!DOCTYPE html>
         }}
     }}
 
+    applySize();
+
     root = d3.hierarchy(data, d => d.children);
+    root.x0 = (layoutState.layoutH / 2) + layoutState.yOffset;
+    root.y0 = 0;
 
     function collapse(d) {{
         if (d.children) {{
@@ -782,16 +711,91 @@ html_template = f"""<!DOCTYPE html>
         }}
     }}
 
-    root.children.forEach(collapse);
-    applySize(getVisibleStats(root));
-    root.x0 = (layoutState.layoutH / 2) + layoutState.yOffset;
-    root.y0 = 0;
+    function getVisibleDepth(node) {{
+        if (!node) return 0;
+        var maxDepth = node.depth || 0;
+        (node.children || []).forEach(function(child) {{
+            maxDepth = Math.max(maxDepth, getVisibleDepth(child));
+        }});
+        return maxDepth;
+    }}
 
+    function tokenizeLabel(name) {{
+        return String(name || '').replace(/([()])/g, ' $1 ').trim().split(/\\s+/).filter(Boolean);
+    }}
+
+    function wrapLabel(name, maxChars) {{
+        var words = tokenizeLabel(name);
+        var lines = [];
+        var current = '';
+
+        words.forEach(function(word) {{
+            while (word.length > maxChars) {{
+                var slice = word.slice(0, maxChars - 1) + '-';
+                word = word.slice(maxChars - 1);
+                if (current) {{
+                    lines.push(current);
+                    current = '';
+                }}
+                lines.push(slice);
+            }}
+
+            var candidate = current ? current + ' ' + word : word;
+            if (candidate.length <= maxChars) {{
+                current = candidate;
+            }} else {{
+                if (current) lines.push(current);
+                current = word;
+            }}
+        }});
+
+        if (current) lines.push(current);
+        return lines.length ? lines : [String(name || '')];
+    }}
+
+    function prepareLabels() {{
+        getAllNodes(root).forEach(function(node) {{
+            node._labelText = wrapLabel(node.data.name, layoutState.maxLabelChars);
+            node._labelLines = node._labelText.length;
+        }});
+    }}
+
+    function estimateLabelWidth(node) {{
+        var lines = node._labelText || [node.data.name || ''];
+        var longest = lines.reduce(function(maxLen, line) {{
+            return Math.max(maxLen, line.length);
+        }}, 0);
+        var charWidth = layoutState.isMobile ? 7.6 : 8.1;
+        return longest * charWidth;
+    }}
+
+    function renderNodeText(selection, color) {{
+        selection
+            .style('fill', color)
+            .attr('text-anchor', 'start')
+            .each(function(d) {{
+                var text = d3.select(this);
+                var lines = d._labelText || [d.data.name];
+                var firstDy = lines.length === 1 ? '0.35em' : (-0.45 * (lines.length - 1)) + 'em';
+                text.text(null);
+                lines.forEach(function(line, index) {{
+                    text.append('tspan')
+                        .attr('x', 17)
+                        .attr('dy', index === 0 ? firstDy : '1.05em')
+                        .text(line);
+                }});
+            }});
+    }}
+
+    root.children.forEach(collapse);
+
+    prepareLabels();
     update(root);
     fitTreeToViewport(false);
 
     window.addEventListener('resize', function() {{
-        applySize(getVisibleStats(root));
+        applySize();
+        prepareLabels();
         var prev = duration;
         duration = 0;
         update(root);
@@ -806,7 +810,13 @@ html_template = f"""<!DOCTYPE html>
 
     /* ── Update function ── */
     function update(source) {{
-        applySize(getVisibleStats(root));
+        applySize();
+        prepareLabels();
+        treeLayout.separation(function(a, b) {{
+            var avgLines = ((a._labelLines || 1) + (b._labelLines || 1)) / 2;
+            var relationGap = a.parent === b.parent ? 1 : 1.35;
+            return relationGap * Math.max(1, avgLines * (layoutState.isMobile ? 1.12 : 0.9));
+        }});
         var treeData = treeLayout(root);
         var nodes = treeData.descendants();
         var links  = treeData.descendants().slice(1);
@@ -815,7 +825,6 @@ html_template = f"""<!DOCTYPE html>
             d.y = d.depth * layoutState.depthSpacing;
             d.renderX = d.x + layoutState.yOffset;
         }});
-        adjustNodeVerticalSpacing(nodes);
 
         var collapseClr = cssVar('--node-collapsed');
         var openFill    = cssVar('--node-fill');
@@ -839,15 +848,8 @@ html_template = f"""<!DOCTYPE html>
             .style('stroke', d => d._children ? collapseClr : strokeClr);
 
         nodeEnter.append('text')
-            .attr('dy', '.35em')
             .attr('x', 17)
-            .attr('text-anchor', 'start')
-            .style('fill', textClr)
-            .style('font-size', layoutState.labelFontSize + 'px')
-            .text(d => formatLabel(d.data.name));
-
-        nodeEnter.append('title')
-            .text(d => d.data.name);
+            .attr('text-anchor', 'start');
 
         var nodeUpdate = nodeEnter.merge(node);
 
@@ -861,14 +863,7 @@ html_template = f"""<!DOCTYPE html>
             .attr('cursor', 'pointer');
 
         nodeUpdate.select('text')
-            .attr('x', 17)
-            .attr('text-anchor', 'start')
-            .style('fill', textClr)
-            .style('font-size', layoutState.labelFontSize + 'px')
-            .text(d => formatLabel(d.data.name));
-
-        nodeUpdate.select('title')
-            .text(d => d.data.name);
+            .call(renderNodeText, textClr);
 
         var nodeExit = node.exit().transition().duration(duration)
             .attr('transform', d => 'translate(' + source.y0 + ',' + source.x0 + ')')
@@ -915,7 +910,6 @@ html_template = f"""<!DOCTYPE html>
             d._children = null;
         }}
         update(d);
-        setTimeout(function() {{ fitTreeToViewport(true); }}, duration + 40);
         showDetails(d.data);
     }}
 
