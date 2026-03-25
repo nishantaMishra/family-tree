@@ -446,12 +446,22 @@
     function getLayoutConfig() {
         var s = getSize();
         if (s.w < 420) {
-            return {depthSpacing: 92, nodeRadius: 9, textOffset: 13, textSize: 10.5, fitPaddingX: 24, fitPaddingY: 36};
+            return {depthSpacing: 92, nodeRadius: 9, textOffset: 13, textSize: 10.5, rowSpacing: 28, fitPaddingX: 24, fitPaddingY: 36};
         }
         if (s.w < 768) {
-            return {depthSpacing: 118, nodeRadius: 10, textOffset: 14, textSize: 11.5, fitPaddingX: 28, fitPaddingY: 42};
+            return {depthSpacing: 118, nodeRadius: 10, textOffset: 14, textSize: 11.5, rowSpacing: 32, fitPaddingX: 28, fitPaddingY: 42};
         }
-        return {depthSpacing: 210, nodeRadius: 12, textOffset: 17, textSize: 13, fitPaddingX: 72, fitPaddingY: 64};
+        return {depthSpacing: 210, nodeRadius: 12, textOffset: 17, textSize: 13, rowSpacing: 38, fitPaddingX: 72, fitPaddingY: 64};
+    }
+
+    function getVisibleLeafCount(node) {
+        if (!node || !node.children || node.children.length === 0) {
+            return 1;
+        }
+
+        return node.children.reduce(function(total, child) {
+            return total + getVisibleLeafCount(child);
+        }, 0);
     }
 
     function getSize() {
@@ -464,8 +474,15 @@
     function applySize() {
         margin = getMargins();
         var s = getSize();
+        var layout = getLayoutConfig();
+        var visibleLeafCount = root ? getVisibleLeafCount(root) : 1;
+        var minimumTreeHeight = visibleLeafCount * layout.rowSpacing;
+
+        treeLayout.separation(function(a, b) {
+            return a.parent === b.parent ? 1 : 1.15;
+        });
         treeLayout.size([
-            Math.max(120, s.h - margin.top  - margin.bottom),
+            Math.max(120, s.h - margin.top - margin.bottom, minimumTreeHeight),
             Math.max(120, s.w - margin.left - margin.right)
         ]);
     }
@@ -656,7 +673,7 @@
             det.innerHTML = (nodeData.details ? escHtml(nodeData.details) + '<br><br>' : '') +
                 '<a href="' + escHtml(nodeData.url) + '" target="_blank" rel="noopener noreferrer">🔗 Profile Link</a>';
         } else if (nodeData.details) {
-            det.textContent = nodeData.details;
+            det.innerHTML = escHtml(nodeData.details);
         } else {
             det.textContent = 'कोई विशेष जानकारी उपलब्ध नहीं।';
         }
