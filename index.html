@@ -412,7 +412,11 @@
     var diagonal = d3.linkHorizontal().x(d => d.y).y(d => d.x);
     var layoutState = {
         depthSpacing: 210,
-        yOffset: 0
+        yOffset: 0,
+        visibleCount: 0,
+        maxDepth: 0,
+        labelMaxChars: 32,
+        labelFontSize: 13
     };
 
     function getSize() {
@@ -422,32 +426,121 @@
         };
     }
 
-    function getLayoutConfig() {
+    function getVisibleStats(node) {
+        if (!node) return {count: 0, maxDepth: 0};
+        var count = 0;
+        var maxDepth = 0;
+        (function walk(n, depth) {
+            count += 1;
+            if (depth > maxDepth) maxDepth = depth;
+            (n.children || []).forEach(function(c) { walk(c, depth + 1); });
+        })(node, 0);
+        return {count: count, maxDepth: maxDepth};
+    }
+
+    function getLayoutConfig(stats) {
         var s = getSize();
         var innerW = Math.max(220, s.w - margin.left - margin.right);
         var innerH = Math.max(220, s.h - margin.top - margin.bottom);
         var mobile = s.w <= 900;
-        var layoutH = mobile ? Math.min(innerH, 420) : innerH;
-        var yOffset = mobile ? Math.max(0, (innerH - layoutH) / 2) : 0;
+        var visibleCount = stats ? stats.count : 0;
+        var maxDepth = stats ? stats.maxDepth : 0;
+        var layoutH;
+        var yOffset = 0;
+
+        if (mobile) {
+            if (visibleCount <= 8) {
+                layoutH = Math.min(innerH, 420);
+                yOffset = Math.max(0, (innerH - layoutH) / 2);
+            } else if (visibleCount <= 22) {
+                layoutH = Math.min(1500, innerH * 1.35);
+            } else {
+                layoutH = Math.min(2600, innerH * 2.1);
+            }
+        } else {
+            layoutH = innerH;
+        }
+
+        var depthSpan = Math.max(2, maxDepth + 1);
+        var perDepth = innerW / depthSpan;
         var depthSpacing = mobile
-            ? Math.max(112, Math.min(156, s.w * 0.35))
-            : 210;
+            ? Math.max(96, Math.min(160, perDepth * 0.92))
+            : Math.max(170, Math.min(260, perDepth * 1.1));
+
+        var labelMaxChars = mobile
+            ? Math.max(8, Math.min(22, Math.floor((depthSpacing - 30) / 6)))
+            : 44;
+        var labelFontSize = mobile
+            ? (visibleCount > 26 ? 10.5 : (visibleCount > 16 ? 11.5 : 12.5))
+            : 13;
+
         return {
             innerW: innerW,
             layoutH: layoutH,
             depthSpacing: depthSpacing,
             yOffset: yOffset,
-            isMobile: mobile
+            isMobile: mobile,
+            visibleCount: visibleCount,
+            maxDepth: maxDepth,
+            labelMaxChars: labelMaxChars,
+            labelFontSize: labelFontSize
         };
     }
 
-    function applySize() {
-        var cfg = getLayoutConfig();
+    function applySize(stats) {
+        var cfg = getLayoutConfig(stats || getVisibleStats(root));
         layoutState = cfg;
         treeLayout.size([
             cfg.layoutH,
             cfg.innerW
         ]);
+        treeLayout.separation(function(a, b) {
+            var sep = a.parent === b.parent ? 1 : 1.25;
+            if (cfg.isMobile && cfg.visibleCount > 20) sep *= 1.35;
+            return sep;
+        });
+    }
+
+    function formatLabel(name) {
+        if (!layoutState.isMobile) return name;
+        if (!name) return '';
+        if (name.length <= layoutState.labelMaxChars) return name;
+        return name.slice(0, layoutState.labelMaxChars - 1) + '…';
+    }
+
+    function adjustNodeVerticalSpacing(nodes) {
+        if (!layoutState.isMobile || nodes.length < 2) return;
+
+        var minGap = layoutState.visibleCount > 26 ? 14 : 16;
+        var depthMap = new Map();
+
+        nodes.forEach(function(n) {
+            if (!depthMap.has(n.depth)) depthMap.set(n.depth, []);
+            depthMap.get(n.depth).push(n);
+        });
+
+        depthMap.forEach(function(list) {
+            if (list.length < 2) return;
+            list.sort(function(a, b) { return a.renderX - b.renderX; });
+
+            var firstOrig = list[0].renderX;
+            var lastOrig = list[list.length - 1].renderX;
+
+            for (var i = 1; i < list.length; i++) {
+                var prev = list[i - 1].renderX;
+                if (list[i].renderX - prev < minGap) {
+                    list[i].renderX = prev + minGap;
+                }
+            }
+
+            var firstNew = list[0].renderX;
+            var lastNew = list[list.length - 1].renderX;
+            var recenter = ((firstOrig + lastOrig) / 2) - ((firstNew + lastNew) / 2);
+
+            list.forEach(function(n) {
+                n.renderX += recenter;
+            });
+        });
     }
 
     function fitTreeToViewport(animated) {
@@ -488,11 +581,7 @@
         }
     }
 
-    applySize();
-
     root = d3.hierarchy(data, d => d.children);
-    root.x0 = (layoutState.layoutH / 2) + layoutState.yOffset;
-    root.y0 = 0;
 
     function collapse(d) {
         if (d.children) {
@@ -503,12 +592,15 @@
     }
 
     root.children.forEach(collapse);
+    applySize(getVisibleStats(root));
+    root.x0 = (layoutState.layoutH / 2) + layoutState.yOffset;
+    root.y0 = 0;
 
     update(root);
     fitTreeToViewport(false);
 
     window.addEventListener('resize', function() {
-        applySize();
+        applySize(getVisibleStats(root));
         var prev = duration;
         duration = 0;
         update(root);
@@ -523,7 +615,7 @@
 
     /* ── Update function ── */
     function update(source) {
-        applySize();
+        applySize(getVisibleStats(root));
         var treeData = treeLayout(root);
         var nodes = treeData.descendants();
         var links  = treeData.descendants().slice(1);
@@ -532,6 +624,7 @@
             d.y = d.depth * layoutState.depthSpacing;
             d.renderX = d.x + layoutState.yOffset;
         });
+        adjustNodeVerticalSpacing(nodes);
 
         var collapseClr = cssVar('--node-collapsed');
         var openFill    = cssVar('--node-fill');
@@ -559,6 +652,10 @@
             .attr('x', 17)
             .attr('text-anchor', 'start')
             .style('fill', textClr)
+            .style('font-size', layoutState.labelFontSize + 'px')
+            .text(d => formatLabel(d.data.name));
+
+        nodeEnter.append('title')
             .text(d => d.data.name);
 
         var nodeUpdate = nodeEnter.merge(node);
@@ -575,7 +672,12 @@
         nodeUpdate.select('text')
             .attr('x', 17)
             .attr('text-anchor', 'start')
-            .style('fill', textClr);
+            .style('fill', textClr)
+            .style('font-size', layoutState.labelFontSize + 'px')
+            .text(d => formatLabel(d.data.name));
+
+        nodeUpdate.select('title')
+            .text(d => d.data.name);
 
         var nodeExit = node.exit().transition().duration(duration)
             .attr('transform', d => 'translate(' + source.y0 + ',' + source.x0 + ')')
@@ -622,6 +724,7 @@
             d._children = null;
         }
         update(d);
+        setTimeout(function() { fitTreeToViewport(true); }, duration + 40);
         showDetails(d.data);
     }
 
