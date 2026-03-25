@@ -489,6 +489,39 @@ html_template = f"""<!DOCTYPE html>
             text-decoration: underline;
         }}
 
+        @media (max-width: 420px) {{
+            #header {{
+                padding: 0 8px;
+                height: 46px;
+                gap: 6px;
+            }}
+            #header-title {{
+                font-size: 11px;
+                max-width: 70px;
+            }}
+            #search-input {{
+                font-size: 11.5px;
+                padding: 6px 30px 6px 10px;
+            }}
+            #search-input::placeholder {{
+                font-size: 10px;
+            }}
+            #theme-toggle {{
+                padding: 3px 8px;
+                font-size: 13px;
+            }}
+            #bottombar.visible {{
+                padding: 10px 12px;
+            }}
+            #bottombar-name {{
+                font-size: 13.5px;
+            }}
+            #bottombar-details {{
+                font-size: 11.5px;
+                line-height: 1.5;
+            }}
+        }}
+
         @media (max-width: 768px) {{
             #header {{
                 gap: 10px;
@@ -626,10 +659,10 @@ html_template = f"""<!DOCTYPE html>
     function getMargins() {{
         var s = getSize();
         if (s.w < 420) {{
-            return {{top: 20, right: 24, bottom: 20, left: 24}};
+            return {{top: 12, right: 12, bottom: 12, left: 12}};
         }}
         if (s.w < 768) {{
-            return {{top: 24, right: 44, bottom: 24, left: 36}};
+            return {{top: 20, right: 28, bottom: 20, left: 28}};
         }}
         return {{top: 40, right: 160, bottom: 40, left: 160}};
     }}
@@ -637,10 +670,10 @@ html_template = f"""<!DOCTYPE html>
     function getLayoutConfig() {{
         var s = getSize();
         if (s.w < 420) {{
-            return {{depthSpacing: 92, nodeRadius: 9, textOffset: 13, textSize: 10.5, rowSpacing: 28, fitPaddingX: 24, fitPaddingY: 36}};
+            return {{depthSpacing: 84, nodeRadius: 10, textOffset: 14, textSize: 13, rowSpacing: 30, fitPaddingX: 12, fitPaddingY: 16}};
         }}
         if (s.w < 768) {{
-            return {{depthSpacing: 118, nodeRadius: 10, textOffset: 14, textSize: 11.5, rowSpacing: 32, fitPaddingX: 28, fitPaddingY: 42}};
+            return {{depthSpacing: 110, nodeRadius: 11, textOffset: 16, textSize: 13.5, rowSpacing: 32, fitPaddingX: 20, fitPaddingY: 24}};
         }}
         return {{depthSpacing: 210, nodeRadius: 12, textOffset: 17, textSize: 13, rowSpacing: 38, fitPaddingX: 72, fitPaddingY: 64}};
     }}
@@ -694,8 +727,12 @@ html_template = f"""<!DOCTYPE html>
         var paddedWidth = bbox.width + layout.fitPaddingX * 2;
         var paddedHeight = bbox.height + layout.fitPaddingY * 2;
         var scale = Math.min(s.w / paddedWidth, s.h / paddedHeight);
-        var maxScale = isCompactViewport() ? 1.7 : 1.15;
-        var minScale = isCompactViewport() ? 0.72 : 0.5;
+        
+        // Mobile needs a more aggressive zoom to make text readable
+        var isSmall = s.w < 420;
+        var maxScale = isSmall ? 2.2 : (isCompactViewport() ? 1.7 : 1.15);
+        var minScale = isSmall ? 0.9 : (isCompactViewport() ? 0.72 : 0.5);
+        
         scale = Math.max(minScale, Math.min(scale, maxScale));
 
         var translateX = (s.w - bbox.width * scale) / 2 - bbox.x * scale;
