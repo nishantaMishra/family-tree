@@ -411,10 +411,9 @@
     var treeLayout = d3.tree();
     var diagonal = d3.linkHorizontal().x(d => d.y).y(d => d.x);
     var layoutState = {
-        depthSpacing: 210,
-        yOffset: 0,
-        maxLabelChars: 18,
-        lineHeightPx: 18
+        depthSpacing: 200,
+        rowGap: 34,
+        isMobile: false
     };
 
     function getSize() {
@@ -426,40 +425,27 @@
 
     function getLayoutConfig() {
         var s = getSize();
-        var innerW = Math.max(220, s.w - margin.left - margin.right);
-        var innerH = Math.max(220, s.h - margin.top - margin.bottom);
         var mobile = s.w <= 900;
-        var visibleDepth = getVisibleDepth(root);
-        var columnCount = Math.max(2, visibleDepth + 1);
-        var layoutH = mobile ? Math.min(innerH, 420) : innerH;
-        var yOffset = mobile ? Math.max(0, (innerH - layoutH) / 2) : 0;
+        /* depthSpacing: horizontal gap between generations (px) */
         var depthSpacing = mobile
-            ? Math.max(112, Math.min(156, s.w * 0.35))
-            : 210;
-        var approxTextWidth = mobile ? 7.2 : 7.8;
-        var availableLabelWidth = Math.max(84, (innerW / columnCount) - (depthSpacing * 0.28));
-        var maxLabelChars = Math.max(
-            mobile ? 9 : 11,
-            Math.min(mobile ? 15 : 22, Math.floor(availableLabelWidth / approxTextWidth))
-        );
+            ? Math.max(110, Math.min(160, s.w * 0.36))
+            : 200;
+        /* rowGap: guaranteed minimum vertical space per node (px).
+           Must be > circle-diameter (24px) + label height (16px) + breathing room. */
+        var rowGap = mobile ? 42 : 36;
         return {
-            innerW: innerW,
-            layoutH: layoutH,
             depthSpacing: depthSpacing,
-            yOffset: yOffset,
-            isMobile: mobile,
-            maxLabelChars: maxLabelChars,
-            lineHeightPx: mobile ? 18 : 16
+            rowGap: rowGap,
+            isMobile: mobile
         };
     }
 
     function applySize() {
         var cfg = getLayoutConfig();
         layoutState = cfg;
-        treeLayout.size([
-            cfg.layoutH,
-            cfg.innerW
-        ]);
+        /* nodeSize guarantees every node gets at least rowGap px vertically;
+           the tree grows as tall as needed — no squishing ever occurs. */
+        treeLayout.nodeSize([cfg.rowGap, cfg.depthSpacing]);
     }
 
     function fitTreeToViewport(animated) {
@@ -471,29 +457,20 @@
 
         nodes.forEach(function(n) {
             var x = n.renderX !== undefined ? n.renderX : n.x;
-            var labelHeight = Math.max(1, (n._labelLines || 1) * layoutState.lineHeightPx);
-            var labelWidth = Math.max(42, estimateLabelWidth(n));
-            var leftY = n.y - 18;
-            var rightY = n.y + 18 + labelWidth;
-            var topX = x - Math.max(18, labelHeight / 2);
-            var bottomX = x + Math.max(18, labelHeight / 2);
-            if (topX < minX) minX = topX;
-            if (bottomX > maxX) maxX = bottomX;
-            if (leftY < minY) minY = leftY;
-            if (rightY > maxY) maxY = rightY;
+            if (x < minX) minX = x;
+            if (x > maxX) maxX = x;
+            if (n.y < minY) minY = n.y;
+            if (n.y > maxY) maxY = n.y;
         });
 
         var s = getSize();
-        var pad = layoutState.isMobile ? 24 : 48;
-        var contentW = Math.max(1, (maxY - minY) + 120);
-        var contentH = Math.max(1, (maxX - minX) + 90);
-        var scale = Math.min(
-            layoutState.isMobile ? 1.35 : 1.1,
-            Math.max(
-                layoutState.isMobile ? 0.62 : 0.45,
-                Math.min((s.w - pad * 2) / contentW, (s.h - pad * 2) / contentH)
-            )
-        );
+        var pad = layoutState.isMobile ? 20 : 40;
+        var contentW = Math.max(1, (maxY - minY) + layoutState.depthSpacing);
+        var contentH = Math.max(1, (maxX - minX) + layoutState.rowGap * 2);
+        /* Scale to fit content in viewport; cap at 1.0 so we never zoom beyond 100% */
+        var scaleX = (s.w - pad * 2) / contentW;
+        var scaleY = (s.h - pad * 2) / contentH;
+        var scale  = Math.min(1.0, Math.max(0.12, Math.min(scaleX, scaleY)));
 
         var tx = (s.w - (minY + maxY) * scale) / 2;
         var ty = (s.h - (minX + maxX) * scale) / 2;
@@ -509,7 +486,8 @@
     applySize();
 
     root = d3.hierarchy(data, d => d.children);
-    root.x0 = (layoutState.layoutH / 2) + layoutState.yOffset;
+    /* With nodeSize the root is placed at x=0; x0/y0 track previous position for animation */
+    root.x0 = 0;
     root.y0 = 0;
 
     function collapse(d) {
@@ -520,91 +498,13 @@
         }
     }
 
-    function getVisibleDepth(node) {
-        if (!node) return 0;
-        var maxDepth = node.depth || 0;
-        (node.children || []).forEach(function(child) {
-            maxDepth = Math.max(maxDepth, getVisibleDepth(child));
-        });
-        return maxDepth;
-    }
-
-    function tokenizeLabel(name) {
-        return String(name || '').replace(/([()])/g, ' $1 ').trim().split(/\s+/).filter(Boolean);
-    }
-
-    function wrapLabel(name, maxChars) {
-        var words = tokenizeLabel(name);
-        var lines = [];
-        var current = '';
-
-        words.forEach(function(word) {
-            while (word.length > maxChars) {
-                var slice = word.slice(0, maxChars - 1) + '-';
-                word = word.slice(maxChars - 1);
-                if (current) {
-                    lines.push(current);
-                    current = '';
-                }
-                lines.push(slice);
-            }
-
-            var candidate = current ? current + ' ' + word : word;
-            if (candidate.length <= maxChars) {
-                current = candidate;
-            } else {
-                if (current) lines.push(current);
-                current = word;
-            }
-        });
-
-        if (current) lines.push(current);
-        return lines.length ? lines : [String(name || '')];
-    }
-
-    function prepareLabels() {
-        getAllNodes(root).forEach(function(node) {
-            node._labelText = wrapLabel(node.data.name, layoutState.maxLabelChars);
-            node._labelLines = node._labelText.length;
-        });
-    }
-
-    function estimateLabelWidth(node) {
-        var lines = node._labelText || [node.data.name || ''];
-        var longest = lines.reduce(function(maxLen, line) {
-            return Math.max(maxLen, line.length);
-        }, 0);
-        var charWidth = layoutState.isMobile ? 7.6 : 8.1;
-        return longest * charWidth;
-    }
-
-    function renderNodeText(selection, color) {
-        selection
-            .style('fill', color)
-            .attr('text-anchor', 'start')
-            .each(function(d) {
-                var text = d3.select(this);
-                var lines = d._labelText || [d.data.name];
-                var firstDy = lines.length === 1 ? '0.35em' : (-0.45 * (lines.length - 1)) + 'em';
-                text.text(null);
-                lines.forEach(function(line, index) {
-                    text.append('tspan')
-                        .attr('x', 17)
-                        .attr('dy', index === 0 ? firstDy : '1.05em')
-                        .text(line);
-                });
-            });
-    }
-
     root.children.forEach(collapse);
 
-    prepareLabels();
     update(root);
     fitTreeToViewport(false);
 
     window.addEventListener('resize', function() {
         applySize();
-        prepareLabels();
         var prev = duration;
         duration = 0;
         update(root);
@@ -620,19 +520,13 @@
     /* ── Update function ── */
     function update(source) {
         applySize();
-        prepareLabels();
-        treeLayout.separation(function(a, b) {
-            var avgLines = ((a._labelLines || 1) + (b._labelLines || 1)) / 2;
-            var relationGap = a.parent === b.parent ? 1 : 1.35;
-            return relationGap * Math.max(1, avgLines * (layoutState.isMobile ? 1.12 : 0.9));
-        });
         var treeData = treeLayout(root);
         var nodes = treeData.descendants();
         var links  = treeData.descendants().slice(1);
 
         nodes.forEach(d => {
             d.y = d.depth * layoutState.depthSpacing;
-            d.renderX = d.x + layoutState.yOffset;
+            d.renderX = d.x;   /* nodeSize layout — no yOffset needed */
         });
 
         var collapseClr = cssVar('--node-collapsed');
@@ -657,8 +551,11 @@
             .style('stroke', d => d._children ? collapseClr : strokeClr);
 
         nodeEnter.append('text')
+            .attr('dy', '.35em')
             .attr('x', 17)
-            .attr('text-anchor', 'start');
+            .attr('text-anchor', 'start')
+            .style('fill', textClr)
+            .text(d => d.data.name);
 
         var nodeUpdate = nodeEnter.merge(node);
 
@@ -672,7 +569,9 @@
             .attr('cursor', 'pointer');
 
         nodeUpdate.select('text')
-            .call(renderNodeText, textClr);
+            .attr('x', 17)
+            .attr('text-anchor', 'start')
+            .style('fill', textClr);
 
         var nodeExit = node.exit().transition().duration(duration)
             .attr('transform', d => 'translate(' + source.y0 + ',' + source.x0 + ')')
@@ -720,6 +619,8 @@
         }
         update(d);
         showDetails(d.data);
+        /* Re-fit after expand/collapse so new nodes don't go off-screen */
+        setTimeout(function() { fitTreeToViewport(true); }, duration + 80);
     }
 
     /* ── Bottom panel ── */
