@@ -602,6 +602,9 @@ html_template = f"""<!DOCTYPE html>
     var zoom = d3.zoom()
         .scaleExtent([0.12, 3.5])
         .on('zoom', function() {{
+                if (d3.event.sourceEvent) {{
+                    userHasControlledViewport = true;
+                }}
             gMain.attr('transform', d3.event.transform);
         }});
 
@@ -614,6 +617,7 @@ html_template = f"""<!DOCTYPE html>
     var treeLayout = d3.tree();
     var diagonal = d3.linkHorizontal().x(d => d.y).y(d => d.x);
     var fitTimer = null;
+    var userHasControlledViewport = false;
 
     function isCompactViewport() {{
         return getSize().w < 768;
@@ -830,7 +834,7 @@ html_template = f"""<!DOCTYPE html>
         }}
         update(d);
         showDetails(d.data);
-        if (isCompactViewport()) {{
+        if (isCompactViewport() && !userHasControlledViewport) {{
             scheduleFit(true, duration + 40);
         }}
     }}
