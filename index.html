@@ -302,6 +302,39 @@
         ::-webkit-scrollbar { width: 5px; height: 5px; }
         ::-webkit-scrollbar-track { background: transparent; }
         ::-webkit-scrollbar-thumb { background: var(--link-color); border-radius: 3px; }
+
+        @media (max-width: 900px) {
+            #header {
+                height: 52px;
+                padding: 0 10px;
+                gap: 8px;
+            }
+            #header-title {
+                font-size: 12px;
+                max-width: 96px;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                white-space: nowrap;
+            }
+            #search-wrapper {
+                max-width: none;
+            }
+            #search-input {
+                font-size: 13px;
+                padding: 8px 34px 8px 11px;
+            }
+            #theme-toggle {
+                padding: 4px 10px;
+                font-size: 14px;
+            }
+            .node text {
+                font: 14px 'Noto Sans Devanagari', Arial, sans-serif;
+            }
+            #bottombar.visible {
+                max-height: 40vh;
+                padding: 12px 12px;
+            }
+        }
     </style>
     <script src="https://d3js.org/d3.v5.min.js"></script>
 </head>
@@ -377,6 +410,10 @@
     var i = 0, duration = 750, root;
     var treeLayout = d3.tree();
     var diagonal = d3.linkHorizontal().x(d => d.y).y(d => d.x);
+    var layoutState = {
+        depthSpacing: 210,
+        yOffset: 0
+    };
 
     function getSize() {
         return {
@@ -385,18 +422,76 @@
         };
     }
 
-    function applySize() {
+    function getLayoutConfig() {
         var s = getSize();
+        var innerW = Math.max(220, s.w - margin.left - margin.right);
+        var innerH = Math.max(220, s.h - margin.top - margin.bottom);
+        var mobile = s.w <= 900;
+        var layoutH = mobile ? Math.min(innerH, 420) : innerH;
+        var yOffset = mobile ? Math.max(0, (innerH - layoutH) / 2) : 0;
+        var depthSpacing = mobile
+            ? Math.max(112, Math.min(156, s.w * 0.35))
+            : 210;
+        return {
+            innerW: innerW,
+            layoutH: layoutH,
+            depthSpacing: depthSpacing,
+            yOffset: yOffset,
+            isMobile: mobile
+        };
+    }
+
+    function applySize() {
+        var cfg = getLayoutConfig();
+        layoutState = cfg;
         treeLayout.size([
-            s.h - margin.top  - margin.bottom,
-            s.w - margin.left - margin.right
+            cfg.layoutH,
+            cfg.innerW
         ]);
+    }
+
+    function fitTreeToViewport(animated) {
+        var nodes = root ? root.descendants() : [];
+        if (!nodes.length) return;
+
+        var minX = Infinity, maxX = -Infinity;
+        var minY = Infinity, maxY = -Infinity;
+
+        nodes.forEach(function(n) {
+            var x = n.renderX !== undefined ? n.renderX : n.x;
+            if (x < minX) minX = x;
+            if (x > maxX) maxX = x;
+            if (n.y < minY) minY = n.y;
+            if (n.y > maxY) maxY = n.y;
+        });
+
+        var s = getSize();
+        var pad = layoutState.isMobile ? 24 : 48;
+        var contentW = Math.max(1, (maxY - minY) + 120);
+        var contentH = Math.max(1, (maxX - minX) + 90);
+        var scale = Math.min(
+            layoutState.isMobile ? 1.35 : 1.1,
+            Math.max(
+                layoutState.isMobile ? 0.62 : 0.45,
+                Math.min((s.w - pad * 2) / contentW, (s.h - pad * 2) / contentH)
+            )
+        );
+
+        var tx = (s.w - (minY + maxY) * scale) / 2;
+        var ty = (s.h - (minX + maxX) * scale) / 2;
+        var transform = d3.zoomIdentity.translate(tx, ty).scale(scale);
+
+        if (animated) {
+            svgEl.transition().duration(350).call(zoom.transform, transform);
+        } else {
+            svgEl.call(zoom.transform, transform);
+        }
     }
 
     applySize();
 
     root = d3.hierarchy(data, d => d.children);
-    root.x0 = (getSize().h - margin.top - margin.bottom) / 2;
+    root.x0 = (layoutState.layoutH / 2) + layoutState.yOffset;
     root.y0 = 0;
 
     function collapse(d) {
@@ -409,15 +504,15 @@
 
     root.children.forEach(collapse);
 
-    /* Place root near top-left margin on first render */
-    svgEl.call(zoom.transform, d3.zoomIdentity.translate(margin.left, margin.top));
     update(root);
+    fitTreeToViewport(false);
 
     window.addEventListener('resize', function() {
         applySize();
         var prev = duration;
         duration = 0;
         update(root);
+        fitTreeToViewport(false);
         duration = prev;
     });
 
@@ -433,7 +528,10 @@
         var nodes = treeData.descendants();
         var links  = treeData.descendants().slice(1);
 
-        nodes.forEach(d => { d.y = d.depth * 210; });
+        nodes.forEach(d => {
+            d.y = d.depth * layoutState.depthSpacing;
+            d.renderX = d.x + layoutState.yOffset;
+        });
 
         var collapseClr = cssVar('--node-collapsed');
         var openFill    = cssVar('--node-fill');
@@ -466,7 +564,7 @@
         var nodeUpdate = nodeEnter.merge(node);
 
         nodeUpdate.transition().duration(duration)
-            .attr('transform', d => 'translate(' + d.y + ',' + d.x + ')');
+            .attr('transform', d => 'translate(' + d.y + ',' + d.renderX + ')');
 
         nodeUpdate.select('circle.node')
             .attr('r', 12)
@@ -480,7 +578,7 @@
             .style('fill', textClr);
 
         var nodeExit = node.exit().transition().duration(duration)
-            .attr('transform', d => 'translate(' + source.y + ',' + source.x + ')')
+            .attr('transform', d => 'translate(' + source.y0 + ',' + source.x0 + ')')
             .remove();
         nodeExit.select('circle').attr('r', 1e-6);
         nodeExit.select('text').style('fill-opacity', 1e-6);
@@ -499,16 +597,19 @@
 
         linkEnter.merge(link).transition().duration(duration)
             .style('stroke', linkClr)
-            .attr('d', d => diagonal({source: d.parent, target: d}));
+            .attr('d', d => diagonal({
+                source: {x: d.parent.renderX, y: d.parent.y},
+                target: {x: d.renderX, y: d.y}
+            }));
 
         link.exit().transition().duration(duration)
             .attr('d', d => {
-                var o = {x: source.x, y: source.y};
+                var o = {x: source.x0, y: source.y0};
                 return diagonal({source: o, target: o});
             })
             .remove();
 
-        nodes.forEach(d => { d.x0 = d.x; d.y0 = d.y; });
+        nodes.forEach(d => { d.x0 = d.renderX; d.y0 = d.y; });
     }
 
     /* ── Click handler ── */
@@ -581,7 +682,7 @@
             var s  = getSize();
             var k  = d3.zoomTransform(svgEl.node()).k;
             var tx = s.w / 2 - node.y * k;
-            var ty = s.h / 2 - node.x * k;
+            var ty = s.h / 2 - node.renderX * k;
             svgEl.transition().duration(650)
                 .call(zoom.transform, d3.zoomIdentity.translate(tx, ty).scale(k));
         }, duration + 60);
