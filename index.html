@@ -673,7 +673,7 @@
             det.innerHTML = (nodeData.details ? escHtml(nodeData.details) + '<br><br>' : '') +
                 '<a href="' + escHtml(nodeData.url) + '" target="_blank" rel="noopener noreferrer">🔗 Profile Link</a>';
         } else if (nodeData.details) {
-            det.innerHTML = escHtml(nodeData.details);
+            det.textContent = nodeData.details;
         } else {
             det.textContent = 'कोई विशेष जानकारी उपलब्ध नहीं।';
         }
@@ -695,8 +695,8 @@
 
     function ancestorPath(node) {
         var parts = [], cur = node.parent;
-        while (cur) { parts.unshift(cur.data.name); cur = cur.parent; }
-        return parts.join(' › ');
+        while (cur) { parts.push(cur.data.name); cur = cur.parent; }
+        return parts.join(' ‹ ');
     }
 
     function expandToNode(node) {

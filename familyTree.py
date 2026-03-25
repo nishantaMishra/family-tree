@@ -886,8 +886,8 @@ html_template = f"""<!DOCTYPE html>
 
     function ancestorPath(node) {{
         var parts = [], cur = node.parent;
-        while (cur) {{ parts.unshift(cur.data.name); cur = cur.parent; }}
-        return parts.join(' › ');
+        while (cur) {{ parts.push(cur.data.name); cur = cur.parent; }}
+        return parts.join(' ‹ ');
     }}
 
     function expandToNode(node) {{
