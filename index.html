@@ -29,6 +29,8 @@
             --bottombar-border: rgba(91,79,207,0.15);
             --input-bg: #f2f0fc;
             --input-border: rgba(91,79,207,0.25);
+            --male-color: #5b4fcf;
+            --female-color: #e91e63;
         }
         [data-theme="dark"] {
             --bg: #0f0f1a;
@@ -51,6 +53,8 @@
             --bottombar-border: rgba(139,127,232,0.20);
             --input-bg: #14132a;
             --input-border: rgba(139,127,232,0.35);
+            --male-color: #8b7fe8;
+            --female-color: #f06292;
         }
         *, *::before, *::after {
             box-sizing: border-box;
@@ -217,6 +221,16 @@
         }
         .node circle {
             stroke-width: 2.5px;
+            transition: transform 0.3s ease, cy 0.3s ease;
+        }
+        .node:hover .spouse-circle {
+            cy: 24; /* Touching: spacing of 2R if R=12 */
+        }
+        @media (max-width: 420px) {
+            .node:hover .spouse-circle { cy: 20; }
+        }
+        @media (max-width: 768px) {
+            .node:hover .spouse-circle { cy: 22; }
         }
         .node text {
             font: 13px 'Noto Sans Devanagari', Arial, sans-serif;
@@ -433,7 +447,7 @@
     });
 
     /* ── Data ── */
-    var data = {"name": "\u0916\u0926\u0947\u0932 \u092e\u093f\u0936\u094d\u0930\u093e", "children": [{"name": "\u0906\u092f\u094b\u0927\u094d\u092f\u093e\u092a\u094d\u0930\u0938\u093e\u0926 \u092e\u093f\u0936\u094d\u0930\u093e", "children": [{"name": "\u092c\u0947\u0928\u0940\u092e\u093e\u0927\u0935 \u092e\u093f\u0936\u094d\u0930\u093e", "children": [{"name": "\u0930\u093e\u092e \u0915\u0943\u092a\u093e\u0932 \u092e\u093f\u0936\u094d\u0930\u093e", "children": [{"name": "\u0938\u0924\u094d\u092f\u092a\u093e\u0932(\u0915\u092e\u0932\u0947\u0936) \u092e\u093f\u0936\u094d\u0930\u093e", "children": [{"name": "\u092a\u094d\u0930\u092d\u093e\u0924(\u0915\u0928\u094d\u0927\u0948\u092f\u093e)", "children": [{"name": "\u0930\u094c\u0928\u0915"}, {"name": "\u090b\u0924\u093f\u0915"}]}, {"name": "\u0915\u0943\u0937\u094d\u0923 \u0915\u0941\u092e\u093e\u0930(\u0935\u093f\u0928\u0940\u0924) \u092e\u093f\u0936\u094d\u0930\u093e", "children": [{"name": "\u0915\u093e\u0930\u094d\u0924\u093f\u0915"}]}]}, {"name": "\u0915\u0943\u0937\u094d\u0923\u092a\u093e\u0932(\u0905\u0928\u094d\u0928\u0942) \u092e\u093f\u0936\u094d\u0930\u093e", "children": [{"name": " \u0905\u0924\u0941\u0932(\u0938\u094b\u0928\u0942)", "children": [{"name": "\u0967"}, {"name": "\u0968"}]}]}, {"name": "\u092c\u093f\u0928\u094d\u0926\u0941(\u0917\u0941\u0932\u093e\u092c\u0915\u0932\u0940) \u092e\u093f\u0936\u094d\u0930\u093e"}, {"name": "\u0928\u093e\u0928\u092c\u0941\u0926\u0940"}, {"name": "\u092e\u0940\u0928\u0942"}]}, {"name": "\u0930\u093e\u092e \u0936\u093f\u0930\u094b\u092e\u0923\u093f \u092e\u093f\u0936\u094d\u0930\u093e", "children": [{"name": "\u0926\u092f\u093e\u0936\u0919\u094d\u0915\u0930 \u092e\u093f\u0936\u094d\u0930\u093e", "children": [{"name": "\u0909\u0926\u092f \u0936\u0919\u094d\u0915\u0930 \u092e\u093f\u0936\u094d\u0930\u093e", "children": [{"name": "\u0906\u0926\u094d\u092f\u093e \u092e\u093f\u0936\u094d\u0930\u093e"}, {"name": "\u0905\u092d\u094d\u092f\u0941\u0926\u092f \u092e\u093f\u0936\u094d\u0930\u093e"}]}, {"name": "\u0930\u0935\u093f\u0936\u0919\u094d\u0915\u0930 \u092e\u093f\u0936\u094d\u0930\u093e(\u091b\u094b\u091f\u0915\u094c)", "details": "\u0935\u093f\u0935\u093e\u0939 \u0938\u0947 \u092a\u0942\u0930\u094d\u0935 \u0939\u0940 \u0907\u0928\u0915\u0940 \u0906\u0915\u093e\u0932 \u092e\u0943\u0924\u094d\u092f\u0941 \u0939\u094b \u0917\u092f\u0940 \u0925\u0940\u0964"}]}, {"name": "\u0909\u092e\u093e\u0936\u0919\u094d\u0915\u0930 \u092e\u093f\u0936\u094d\u0930\u093e", "children": [{"name": "\u0905\u091c\u092f\u0936\u0919\u094d\u0915\u0930(\u092c\u092c\u0932\u0942) \u092e\u093f\u0936\u094d\u0930\u093e", "children": [{"name": "\u0906\u0936\u0940"}, {"name": "\u0905\u0928\u0928\u094d\u092f\u093e"}, {"name": "\u0928\u0940\u0936\u0942"}, {"name": "\u096a"}]}, {"name": "\u092a\u094d\u0930\u092d\u093e\u0936\u0919\u094d\u0915\u0930(\u091d\u0932\u094d\u0932\u0942) \u092e\u093f\u0936\u094d\u0930\u093e", "children": [{"name": "\u092a\u093e\u0930\u0941\u0932"}, {"name": "\u0968 (\u092a\u0941\u0924\u094d\u0930)"}]}, {"name": "\u0935\u093f\u091c\u092f\u0936\u0919\u094d\u0915\u0930(\u092b\u0941\u0928\u094d\u0928\u0942) \u092e\u093f\u0936\u094d\u0930\u093e"}]}, {"name": "\u091c\u0917\u093f\u0924\u093e", "details": "\u0935\u0941\u0937\u094d\u0923\u0941\u0926\u0924\u094d\u0924 \u0924\u093f\u0935\u093e\u0930\u0940 \u0938\u0947 \u0935\u093f\u0935\u093e\u0939\u093f\u0924\u0964"}]}, {"name": "\u0930\u092e\u091c\u0928\u093f\u092f\u093e", "details": "\u0930\u093e\u092e\u0936\u093f\u0930\u094b\u092e\u0923\u093f \u0938\u0947 \u0906\u0924\u0930\u0938\u0941\u0908 \u092e\u0947\u0902 \u0935\u093f\u0935\u093e\u0939 \u0939\u0941\u0906\u0964"}, {"name": "\u0938\u0941\u0926\u093e\u092e\u093e \u092a\u094d\u0930\u0938\u093e\u0926 \u092e\u093f\u0936\u094d\u0930\u093e", "children": [{"name": "\u0938\u0941\u0930\u094b\u0936 \u092e\u093f\u0936\u094d\u0930\u093e", "children": [{"name": "\u092a\u094d\u0930\u092e\u094b\u0926 \u092e\u093f\u0936\u094d\u0930\u093e (\u0924\u094d\u092f\u093e\u0917\u0940)", "children": [{"name": "\u0938\u093e\u0928\u093f\u092f\u093e"}, {"name": "\u0905\u0902\u0936\u093f\u0915\u093e"}]}, {"name": "\u0935\u093f\u0928\u094b\u0926 \u092e\u093f\u0936\u094d\u0930\u093e (\u0915\u0932\u094d\u0932\u0942)", "children": [{"name": "\u0967(\u092a\u0941\u0924\u094d\u0930\u0940)"}, {"name": "\u0968(\u092a\u0941\u0924\u094d\u0930\u0940)"}, {"name": "\u0969(\u092a\u0941\u0924\u094d\u0930)"}]}, {"name": "\u0906\u0928\u0928\u094d\u0926 \u092e\u093f\u0936\u094d\u0930\u093e", "children": [{"name": "\u0938\u094d\u092a\u0930\u094d\u0936"}, {"name": "\u0905\u0935\u093f\u0915"}]}]}, {"name": "\u092e\u0941\u0928\u0947\u0936 \u092e\u093f\u0936\u094d\u0930\u093e", "children": [{"name": "\u0935\u093f\u0915\u093e\u0938 \u092e\u093f\u0936\u094d\u0930\u093e"}, {"name": "\u0916\u0941\u0936\u092c\u0942"}, {"name": "\u0938\u0941\u092d\u093e\u0937 \u092e\u093f\u0936\u094d\u0930\u093e"}]}, {"name": "\u0938\u0941\u0928\u0940\u0924\u093e"}, {"name": "\u0917\u0940\u0924\u093e"}, {"name": "\u0938\u0940\u0924\u093e", "details": "\u0907\u0928\u0915\u093e \u0928\u093f\u0927\u0928 \u0906\u0924\u094d\u092e\u0926\u093e\u0939 \u0938\u0947 \u0939\u0941\u0906 \u0925\u093e\u0964"}, {"name": "\u092e\u092e\u0924\u093e"}]}, {"name": "\u0930\u093e\u092e \u0938\u0942\u0930\u0924 \u092e\u093f\u0936\u094d\u0930\u093e", "children": [{"name": "\u0905\u0928\u0941\u0930\u093e\u0927\u093e \u0924\u093f\u0935\u093e\u0930\u0940", "children": [{"name": "\u092a\u094d\u0930\u092d\u0941 \u0928\u093e\u0930\u093e\u092f\u0923 \u0924\u093f\u0935\u093e\u0930\u0940"}, {"name": "\u0905\u0902\u0936\u0941 \u0924\u093f\u0935\u093e\u0930\u0940", "details": "\u0930\u0935\u093f \u092e\u093f\u0936\u094d\u0930\u093e \u0938\u0919\u094d\u0917 \u0935\u093f\u0935\u093e\u0939\u093f\u0924"}]}, {"name": "\u0936\u094d\u0930\u0935\u0923 \u0915\u0941\u092e\u093e\u0930 \u092e\u093f\u0936\u094d\u0930\u093e", "children": [{"name": "\u091a\u0947\u0924\u0928\u093e"}, {"name": "\u092d\u093e\u0935\u0928\u093e"}, {"name": "\u092a\u094d\u0930\u0947\u0930\u0923\u093e", "url": "https://www.instagram.com/mishraprerna269/"}, {"name": "\u0928\u093f\u0936\u093e\u0928\u094d\u0924 \u092e\u093f\u0936\u094d\u0930\u093e"}]}, {"name": "\u0906\u0936\u093f\u0937 \u0915\u0941\u092e\u093e\u0930 \u092e\u093f\u0936\u094d\u0930\u093e"}]}]}, {"name": "\u0930\u093e\u092e \u0906\u0936\u094d\u0930\u092f \u092e\u093f\u0936\u094d\u0930\u093e", "children": [{"name": "\u0930\u093e\u092e \u092a\u094d\u0930\u0938\u093e\u0926 \u092e\u093f\u0936\u094d\u0930\u093e", "children": [{"name": "\u0905\u0936\u094b\u0915 \u0915\u0941\u092e\u093e\u0930 (\u092e\u0941\u0928\u094d\u0928\u0942) \u092e\u093f\u0936\u094d\u0930\u093e", "children": [{"name": "\u0917\u0941\u0932\u093e\u0935 (\u0938\u093f\u0923\u094d\u091f\u0942) \u092e\u093f\u0936\u094d\u0930\u093e"}, {"name": "\u091f\u093f\u0919\u094d\u0915\u0932"}]}, {"name": "\u092e\u0928\u094b\u091c \u092e\u093f\u0936\u094d\u0930\u093e", "children": [{"name": "\u0967(\u092a\u0941\u0924\u094d\u0930\u0940)"}, {"name": "\u0968(\u092a\u0941\u0924\u094d\u0930\u0940)"}, {"name": "\u0969(\u092a\u0941\u0924\u094d\u0930\u0940)"}, {"name": "\u0926\u0940\u092a\u0942 \u092e\u093f\u0936\u094d\u0930\u093e"}]}, {"name": "\u092a\u094d\u0930\u0926\u0940\u092a \u092e\u093f\u0936\u094d\u0930\u093e (\u091b\u094b\u091f\u0915\u094c)", "children": [{"name": "\u092a\u094d\u0930\u093e\u0902\u0936\u0941"}, {"name": "\u0905\u0902\u0936"}]}, {"name": "\u0917\u0941\u0921\u094d\u0921\u0928\u094d"}, {"name": "\u0915\u0930\u0941\u0923\u093e"}, {"name": "\u092a\u0941\u0937\u094d\u092a\u093e"}, {"name": "\u0938\u0941\u0927\u093e"}]}, {"name": "\u0938\u093e\u0935\u093f\u0924\u094d\u0930\u0940"}]}, {"name": "\u0928\u093e\u0930\u093e\u092f\u0923 \u0926\u0940\u0928 \u092e\u093f\u0936\u094d\u0930\u093e", "children": [{"name": "\u0938\u0924\u0940\u0936 \u092e\u093f\u0936\u094d\u0930\u093e", "children": [{"name": "\u0928\u0940\u0932\u0942"}, {"name": "\u0930\u0947\u0916\u093e"}, {"name": " \u092e\u093e\u0927\u0941\u0930\u0940 (\u0917\u0941\u0921\u094d\u0921\u0940)"}]}, {"name": "\u0915\u0947\u0936\u0935", "children": [{"name": "\u0905\u091c\u0940\u0924\u093e (\u0930\u093e\u0928\u0940)"}, {"name": "\u0905\u091c\u092f (\u0917\u0941\u0921\u094d\u0921\u0942)"}, {"name": "\u0905\u091c\u0940\u0924 (\u0905\u091c\u094d\u091c\u0942)"}]}, {"name": "\u0926\u093f\u0935\u093e\u0915\u0930 \u092e\u093f\u0936\u094d\u0930\u093e", "details": "\u0909\u092e\u093e\u0926\u0947\u0935\u0940 \u092e\u093f\u0936\u094d\u0930\u093e \u0938\u0947 \u0935\u093f\u0935\u093e\u0939\u093f\u0924\u0964", "children": [{"name": "\u0935\u093f\u091c\u092f \u0915\u0941\u092e\u093e\u0930(\u092c\u093f\u091c\u094d\u091c\u0942) \u092e\u093f\u0936\u094d\u0930\u093e", "details": "\u0938\u0930\u093f\u0924\u093e \u092e\u093f\u0936\u094d\u0930\u093e \u0938\u0947 \u0935\u093f\u0935\u093e\u0939\u093f\u0924\u0964", "children": [{"name": "\u0936\u0941\u092d\u092e\u094d \u092e\u093f\u0936\u094d\u0930\u093e", "details": "\u0905\u0928\u094d\u0928\u092a\u0942\u0930\u094d\u0923\u093e \u0924\u093f\u0935\u093e\u0930\u0940 \u0938\u0947 \u0935\u093f\u0935\u093e\u0939\u093f\u0924 \u0939\u0941\u0906\u0964 \u0905\u0928\u094d\u0928\u092a\u0942\u0930\u094d\u0923\u093e(\u092a\u094d\u0930\u093e\u091a\u0940) \u0936\u094d\u0930\u0940 \u0915\u092e\u0932\u0947\u0936 \u0924\u0925\u093e \u0936\u094d\u0930\u0940\u092e\u0924\u093f \u090a\u0937\u093e \u0924\u093f\u0935\u093e\u0930\u0940 \u0915\u093e \u092a\u0941\u0924\u094d\u0930\u0940 \u0939\u0948\u0902\u0964"}]}, {"name": "\u0968"}, {"name": "\u0969"}, {"name": "\u096a"}, {"name": "\u096b"}]}]}]}, {"name": "\u092d\u0917\u0935\u093e\u0928\u092a\u094d\u0930\u0938\u093e\u0926 \u092e\u093f\u0936\u094d\u0930\u093e", "details": "\u0906\u0915\u093e\u0936\u0940\u092f \u092c\u093f\u091c\u0932\u0940 \u0915\u0940 \u091a\u092a\u0947\u091f \u092e\u0947\u0902 \u0906\u0928\u0947 \u0938\u0947 \u0907\u0928\u0915\u0940 \u0905\u0938\u092e\u092f \u092e\u0943\u0924\u094d\u092f\u0941 \u0939\u094b \u0917\u092f\u0940 \u0925\u0940\u0964"}]};
+    var data = {"name": "खदेल मिश्रा", "gender": "male", "children": [{"name": "आयोध्याप्रसाद मिश्रा", "gender": "male", "children": [{"name": "बेनीमाधव मिश्रा", "gender": "male", "children": [{"name": "राम कृपाल मिश्रा", "gender": "male", "children": [{"name": "सत्यपाल(कमलेश) मिश्रा", "gender": "male", "children": [{"name": "प्रभात(कन्धैया)", "gender": "male", "children": [{"name": "रौनक", "gender": "male"}, {"name": "ऋतिक", "gender": "male"}]}, {"name": "कृष्ण कुमार(विनीत) मिश्रा", "gender": "male", "children": [{"name": "कार्तिक", "gender": "male"}]}]}, {"name": "कृष्णपाल(अन्नू) मिश्रा", "gender": "male", "children": [{"name": " अतुल(सोनू)", "gender": "male", "children": [{"name": "१", "gender": "male"}, {"name": "२", "gender": "male"}]}]}, {"name": "बिन्दु(गुलाबकली) मिश्रा", "gender": "female"}, {"name": "नानबुदी", "gender": "female"}, {"name": "मीनू", "gender": "female"}]}, {"name": "राम शिरोमणि मिश्रा", "gender": "male", "children": [{"name": "दयाशङ्कर मिश्रा", "gender": "male", "children": [{"name": "उदय शङ्कर मिश्रा", "gender": "male", "children": [{"name": "आद्या मिश्रा", "gender": "female"}, {"name": "अभ्युदय मिश्रा", "gender": "male"}]}, {"name": "रविशङ्कर मिश्रा(छोटकौ)", "gender": "male", "details": "विवाह से पूर्व ही इनकी आकाल मृत्यु हो गयी थी।"}]}, {"name": "उमाशङ्कर मिश्रा", "gender": "male", "children": [{"name": "अजयशङ्कर(बबलू) मिश्रा", "gender": "male", "children": [{"name": "आशी", "gender": "female"}, {"name": "अनन्या", "gender": "female"}, {"name": "नीशू", "gender": "female"}, {"name": "४"}]}, {"name": "प्रभाशङ्कर(झल्लू) मिश्रा", "gender": "male", "children": [{"name": "पारुल", "gender": "female"}, {"name": "२ (पुत्र)", "gender": "male"}]}, {"name": "विजयशङ्कर(फुन्नू) मिश्रा", "gender": "male"}]}, {"name": "जगिता", "gender": "female", "details": "वुष्णुदत्त तिवारी से विवाहित।", "spouse": {"name": "वुष्णुदत्त तिवारी", "gender": "male"}}]}, {"name": "रमजनिया", "gender": "female", "details": "रामशिरोमणि से आतरसुई में विवाह हुआ।", "spouse": {"name": "रामशिरोमणि", "gender": "male"}}, {"name": "सुदामा प्रसाद मिश्रा", "gender": "male", "children": [{"name": "सुरोश मिश्रा", "gender": "male", "children": [{"name": "प्रमोद मिश्रा (त्यागी)", "gender": "male", "children": [{"name": "सानिया", "gender": "female"}, {"name": "अंशिका", "gender": "female"}]}, {"name": "विनोद मिश्रा (कल्लू)", "gender": "male", "children": [{"name": "१(पुत्री)", "gender": "female"}, {"name": "२(पुत्री)", "gender": "female"}, {"name": "३(पुत्र)", "gender": "male"}]}, {"name": "आनन्द मिश्रा", "gender": "male", "children": [{"name": "स्पर्श", "gender": "male"}, {"name": "अविक", "gender": "male"}]}]}, {"name": "मुनेश मिश्रा", "gender": "male", "children": [{"name": "विकास मिश्रा", "gender": "male"}, {"name": "खुशबू", "gender": "female"}, {"name": "सुभाष मिश्रा", "gender": "male"}]}, {"name": "सुनीता", "gender": "female"}, {"name": "गीता", "gender": "female"}, {"name": "सीता", "gender": "female", "details": "इनका निधन आत्मदाह से हुआ था।"}, {"name": "ममता", "gender": "female"}]}, {"name": "राम सूरत मिश्रा", "gender": "male", "spouse": {"name": "सोनकली मिश्रा", "gender": "female"}, "children": [{"name": "अनुराधा तिवारी", "gender": "female", "spouse": {"name": "अवधेश प्रताप तिवारी", "gender": "male"}, "children": [{"name": "प्रभु नारायण तिवारी", "gender": "male", "spouse": {"name": "रश्मि तिवारी", "gender": "female"}}, {"name": "अंशु तिवारी", "gender": "female", "details": "रवि मिश्रा सङ्ग विवाहित", "spouse": {"name": "रवि मिश्रा", "gender": "male"}}]}, {"name": "श्रवण कुमार मिश्रा", "gender": "male", "spouse": {"name": "शीला मिश्रा", "gender": "female"}, "children": [{"name": "चेतना", "gender": "female", "spouse": {"name": "पङ्कज तिवारी", "gender": "male"}}, {"name": "भावना", "gender": "female"}, {"name": "प्रेरणा", "gender": "female", "url": "https://www.instagram.com/mishraprerna269/"}, {"name": "निशान्त मिश्रा", "gender": "male"}]}, {"name": "आशिष कुमार मिश्रा", "gender": "male", "spouse": {"name": "प्रियाङ्का मिश्रा", "gender": "female"}, "children": [{"name": "इडिका", "gender": "female"}]}]}]}, {"name": "राम आश्रय मिश्रा", "gender": "male", "children": [{"name": "राम प्रसाद मिश्रा", "gender": "male", "children": [{"name": "अशोक कुमार (मुन्नू) मिश्रा", "gender": "male", "children": [{"name": "गुलाव (सिण्टू) मिश्रा", "gender": "male"}, {"name": "टिङ्कल", "gender": "female"}]}, {"name": "मनोज मिश्रा", "gender": "male", "children": [{"name": "१(पुत्री)", "gender": "female"}, {"name": "२(पुत्री)", "gender": "female"}, {"name": "३(पुत्री)", "gender": "female"}, {"name": "दीपू मिश्रा", "gender": "male"}]}, {"name": "प्रदीप मिश्रा (छोटकौ)", "gender": "male", "children": [{"name": "प्रांशु", "gender": "male"}, {"name": "अंश", "gender": "male"}]}, {"name": "गुड्डन्", "gender": "male"}, {"name": "करुणा", "gender": "female"}, {"name": "पुष्पा", "gender": "female"}, {"name": "सुधा", "gender": "female"}]}, {"name": "सावित्री", "gender": "female"}]}, {"name": "नारायण दीन मिश्रा", "gender": "male", "children": [{"name": "सतीश मिश्रा", "gender": "male", "children": [{"name": "नीलू", "gender": "female"}, {"name": "रेखा", "gender": "female"}, {"name": " माधुरी (गुड्डी)", "gender": "female"}]}, {"name": "केशव", "gender": "male", "children": [{"name": "अजीता (रानी)", "gender": "female"}, {"name": "अजय (गुडड्डू)", "gender": "male"}, {"name": "अजीत (अज्जू)", "gender": "male"}]}, {"name": "दिवाकर मिश्रा", "gender": "male", "details": "उमादेवी मिश्रा से विवाहित।", "spouse": {"name": "उमादेवी मिश्रा", "gender": "female"}, "children": [{"name": "विजय कुमार(बिज्जू) मिश्रा", "gender": "male", "details": "सरिता मिश्रा से विवाहित।", "spouse": {"name": "सरिता मिश्रा", "gender": "female"}, "children": [{"name": "शुभम् मिश्रा", "gender": "male", "details": "अन्नपूर्णा तिवारी से विवाहित हुआ। अन्नपूर्णा(प्राची) श्री कमलेश तथा श्रीमति ऊषा तिवारी का पुत्री हैं।", "spouse": {"name": "अन्नपूर्णा तिवारी", "gender": "female"}}]}, {"name": "२"}, {"name": "३"}, {"name": "४"}, {"name": "५"}]}]}]}, {"name": "भगवानप्रसाद मिश्रा", "gender": "male", "details": "आकाशीय बिजली की चपेट में आने से इनकी असमय मृत्यु हो गयी थी।"}]};
 
     /* ── SVG / Zoom setup ── */
     var margin = {top: 40, right: 160, bottom: 40, left: 160};
@@ -616,6 +630,8 @@
         var strokeClr   = cssVar('--node-stroke');
         var textClr     = cssVar('--text');
         var linkClr     = cssVar('--link-color');
+        var maleClr     = cssVar('--male-color');
+        var femaleClr   = cssVar('--female-color');
 
         /* Nodes */
         var node = gMain.selectAll('g.node')
@@ -626,11 +642,32 @@
             .attr('transform', d => 'translate(' + source.y0 + ',' + source.x0 + ')')
             .on('click', click);
 
+        // Main person circle
         nodeEnter.append('circle')
-            .attr('class', 'node')
+            .attr('class', 'node-circle')
             .attr('r', 1e-6)
-            .style('fill',   d => d._children ? collapseClr : openFill)
-            .style('stroke', d => d._children ? collapseClr : strokeClr);
+            .style('fill', d => {
+                if (d._children) return cssVar('--node-collapsed');
+                return openFill;
+            })
+            .style('stroke', d => {
+                if (d.data.gender === 'male') return maleClr;
+                if (d.data.gender === 'female') return femaleClr;
+                return strokeClr;
+            });
+
+        // Spouse circle (if exists)
+        nodeEnter.each(function(d) {
+            if (d.data.spouse) {
+                d3.select(this).insert('circle', '.node-circle')
+                    .attr('class', 'spouse-circle')
+                    .attr('r', 1e-6)
+                    .attr('cy', 0) // Starts at 0, transitions to layout.nodeRadius/2 for 50% overlap
+                    .style('fill', openFill)
+                    .style('stroke', d.data.spouse.gender === 'female' ? femaleClr : maleClr)
+                    .style('stroke-opacity', 0.8);
+            }
+        });
 
         nodeEnter.append('text')
             .attr('dy', '.35em')
@@ -645,11 +682,33 @@
         nodeUpdate.transition().duration(duration)
             .attr('transform', d => 'translate(' + d.y + ',' + d.x + ')');
 
-        nodeUpdate.select('circle.node')
+        nodeUpdate.select('circle.node-circle')
             .attr('r', layout.nodeRadius)
-            .style('fill',   d => d._children ? collapseClr : openFill)
-            .style('stroke', d => d._children ? collapseClr : strokeClr)
+            .style('fill', d => {
+                if (d._children) {
+                    if (d.data.gender === 'male') return maleClr;
+                    if (d.data.gender === 'female') return femaleClr;
+                    return collapseClr;
+                }
+                return openFill;
+            })
+            .style('stroke', d => {
+                if (d.data.gender === 'male') return maleClr;
+                if (d.data.gender === 'female') return femaleClr;
+                return strokeClr;
+            })
             .attr('cursor', 'pointer');
+
+        nodeUpdate.select('circle.spouse-circle')
+            .transition().duration(duration)
+            .attr('r', layout.nodeRadius)
+            .attr('cy', layout.nodeRadius)
+            .style('fill', openFill)
+            .style('stroke', d => {
+                if (d.data.spouse && d.data.spouse.gender === 'female') return femaleClr;
+                if (d.data.spouse && d.data.spouse.gender === 'male') return maleClr;
+                return strokeClr;
+            });
 
         nodeUpdate.select('text')
             .attr('dy', '.35em')
@@ -708,7 +767,11 @@
 
     /* ── Bottom panel ── */
     function showDetails(nodeData) {
-        document.getElementById('bottombar-name').textContent = nodeData.name;
+        var nameHtml = escHtml(nodeData.name);
+        if (nodeData.spouse) {
+            nameHtml += ' & ' + escHtml(nodeData.spouse.name);
+        }
+        document.getElementById('bottombar-name').innerHTML = nameHtml;
         var det = document.getElementById('bottombar-details');
         if (nodeData.url) {
             det.innerHTML = (nodeData.details ? escHtml(nodeData.details) + '<br><br>' : '') +
