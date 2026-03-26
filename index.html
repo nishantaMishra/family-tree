@@ -630,9 +630,9 @@
             .style('stroke', d => d._children ? collapseClr : strokeClr);
 
         nodeEnter.append('text')
-            .attr('dy', '.35em')
-            .attr('x', layout.textOffset)
-            .attr('text-anchor', 'start')
+            .attr('dy', d => (d.children && d.children.length % 2 !== 0) ? '2.2em' : '.35em')
+            .attr('x', d => (d.children && d.children.length % 2 !== 0) ? 0 : layout.textOffset)
+            .attr('text-anchor', d => (d.children && d.children.length % 2 !== 0) ? 'middle' : 'start')
             .style('font-size', layout.textSize + 'px')
             .style('fill', textClr)
             .text(d => d.data.name);
@@ -649,8 +649,9 @@
             .attr('cursor', 'pointer');
 
         nodeUpdate.select('text')
-            .attr('x', layout.textOffset)
-            .attr('text-anchor', 'start')
+            .attr('dy', d => (d.children && d.children.length % 2 !== 0) ? '2.2em' : '.35em')
+            .attr('x', d => (d.children && d.children.length % 2 !== 0) ? 0 : layout.textOffset)
+            .attr('text-anchor', d => (d.children && d.children.length % 2 !== 0) ? 'middle' : 'start')
             .style('font-size', layout.textSize + 'px')
             .style('fill', textClr);
 
