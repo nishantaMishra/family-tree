@@ -242,8 +242,11 @@
         /* ── Bottom panel ── */
         #bottombar {
             flex-shrink: 0;
-            position: relative;
-            z-index: 100;
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            z-index: 1000;
             background: var(--bottombar-bg);
             border-top: 1px solid var(--bottombar-border);
             box-shadow: 0 -4px 18px var(--shadow);
@@ -479,10 +482,10 @@
     function getLayoutConfig() {
         var s = getSize();
         if (s.w < 420) {
-            return {depthSpacing: 84, nodeRadius: 10, textOffset: 14, textSize: 13, rowSpacing: 30, fitPaddingX: 12, fitPaddingY: 16};
+            return {depthSpacing: 146, nodeRadius: 10, textOffset: 14, textSize: 13, rowSpacing: 30, fitPaddingX: 12, fitPaddingY: 16};
         }
         if (s.w < 768) {
-            return {depthSpacing: 110, nodeRadius: 11, textOffset: 16, textSize: 13.5, rowSpacing: 32, fitPaddingX: 20, fitPaddingY: 24};
+            return {depthSpacing: 185, nodeRadius: 11, textOffset: 16, textSize: 13.5, rowSpacing: 32, fitPaddingX: 20, fitPaddingY: 24};
         }
         return {depthSpacing: 210, nodeRadius: 12, textOffset: 17, textSize: 13, rowSpacing: 38, fitPaddingX: 72, fitPaddingY: 64};
     }
@@ -630,9 +633,9 @@
             .style('stroke', d => d._children ? collapseClr : strokeClr);
 
         nodeEnter.append('text')
-            .attr('dy', d => (d.children && d.children.length % 2 !== 0) ? '2.2em' : '.35em')
-            .attr('x', d => (d.children && d.children.length % 2 !== 0) ? 0 : layout.textOffset)
-            .attr('text-anchor', d => (d.children && d.children.length % 2 !== 0) ? 'middle' : 'start')
+            .attr('dy', '.35em')
+            .attr('x', layout.textOffset)
+            .attr('text-anchor', 'start')
             .style('font-size', layout.textSize + 'px')
             .style('fill', textClr)
             .text(d => d.data.name);
@@ -649,9 +652,9 @@
             .attr('cursor', 'pointer');
 
         nodeUpdate.select('text')
-            .attr('dy', d => (d.children && d.children.length % 2 !== 0) ? '2.2em' : '.35em')
-            .attr('x', d => (d.children && d.children.length % 2 !== 0) ? 0 : layout.textOffset)
-            .attr('text-anchor', d => (d.children && d.children.length % 2 !== 0) ? 'middle' : 'start')
+            .attr('dy', '.35em')
+            .attr('x', layout.textOffset)
+            .attr('text-anchor', 'start')
             .style('font-size', layout.textSize + 'px')
             .style('fill', textClr);
 
