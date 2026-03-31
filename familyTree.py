@@ -174,7 +174,7 @@ data = {
                                         }
                                     },
                                     "children": [
-                                        {"name": "चेतना", "gender": "female", "spouse": {"name": "पङ्कज तिवारी", "gender": "male"}},
+                                        {"name": "चेतना", "gender": "female", "spouse": {"name": "पङ्कज तिवारी", "gender": "male"}, "spouseChildren": [{"name": "अथर्व तिवारी", "gender": "male"}]},
                                         {"name": "भावना", "gender": "female"},
                                         {"name": "प्रेरणा", "gender": "female", "url": "https://www.instagram.com/mishraprerna269/"},
                                         {"name": "निशान्त मिश्रा", "gender": "male"}
