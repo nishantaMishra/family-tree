@@ -205,6 +205,12 @@
             background: var(--bg);
             transition: background-color 0.3s;
         }
+        .tree-panel {
+            position: relative;
+            overflow: hidden;
+            width: 100%;
+            height: 100%;
+        }
         #tree-svg {
             display: block;
             width: 100%;
@@ -213,6 +219,30 @@
         }
         #tree-svg:active {
             cursor: grabbing;
+        }
+        #spouse-connector-layer {
+            position: fixed;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 950;
+        }
+        .connector-path {
+            fill: none;
+            stroke: var(--node-highlight);
+            stroke-width: 2.2px;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+            opacity: 0;
+            filter: drop-shadow(0 0 6px var(--shadow));
+        }
+        .spouse-tree-link {
+            fill: none;
+            stroke: var(--node-highlight);
+            stroke-opacity: 0.55;
+            stroke-width: 1.7px;
+            stroke-dasharray: 4 4;
         }
 
         /* ── D3 nodes & links ── */
@@ -223,13 +253,23 @@
             stroke-width: 2.5px;
             transition: transform 0.3s ease, cy 0.3s ease;
         }
+        .spouse-label {
+            opacity: 0;
+            pointer-events: none;
+            transform: translateY(-4px);
+            transition: opacity 0.3s ease, transform 0.3s ease;
+        }
         .node:hover .spouse-circle {
             cy: 24; /* Touching: spacing of 2R if R=12 */
+        }
+        .node:hover .spouse-label {
+            opacity: 1;
+            transform: translateY(0);
         }
         @media (max-width: 420px) {
             .node:hover .spouse-circle { cy: 20; }
         }
-        @media (max-width: 768px) {
+        @media (min-width: 421px) and (max-width: 768px) {
             .node:hover .spouse-circle { cy: 22; }
         }
         .node text {
@@ -284,6 +324,28 @@
             font-size: 16px;
             font-weight: 600;
             color: var(--accent);
+        }
+        .bottombar-spouse-trigger {
+            background: none;
+            border: none;
+            padding: 0;
+            margin: 0;
+            color: inherit;
+            font: inherit;
+            font-weight: inherit;
+            cursor: pointer;
+            text-decoration: underline;
+            text-decoration-thickness: 1.5px;
+            text-underline-offset: 0.14em;
+        }
+        .bottombar-spouse-trigger:hover,
+        .bottombar-spouse-trigger.is-active {
+            color: var(--node-highlight);
+        }
+        .bottombar-spouse-trigger:focus-visible {
+            outline: 2px solid var(--node-highlight);
+            outline-offset: 2px;
+            border-radius: 4px;
         }
         #bottombar-close {
             background: none;
@@ -419,7 +481,11 @@
     <button id="theme-toggle" title="Toggle theme" aria-label="Toggle theme">🌙</button>
 </header>
 
-<div id="tree-container"></div>
+<div id="tree-container">
+    <div id="main-tree-panel" class="tree-panel"></div>
+</div>
+
+<svg id="spouse-connector-layer" aria-hidden="true"></svg>
 
 <div id="bottombar">
     <div id="bottombar-header">
@@ -444,42 +510,55 @@
         this.textContent = next === 'dark' ? '☀️' : '🌙';
         localStorage.setItem('ft-theme', next);
         update(root);
+        if (spouseRoot) {
+            updateSpouseTree(spouseRoot);
+            drawSpouseConnector(false);
+        }
     });
 
     /* ── Data ── */
-    var data = {"name": "खदेल मिश्रा", "gender": "male", "children": [{"name": "आयोध्याप्रसाद मिश्रा", "gender": "male", "children": [{"name": "बेनीमाधव मिश्रा", "gender": "male", "children": [{"name": "राम कृपाल मिश्रा", "gender": "male", "children": [{"name": "सत्यपाल(कमलेश) मिश्रा", "gender": "male", "children": [{"name": "प्रभात(कन्धैया)", "gender": "male", "children": [{"name": "रौनक", "gender": "male"}, {"name": "ऋतिक", "gender": "male"}]}, {"name": "कृष्ण कुमार(विनीत) मिश्रा", "gender": "male", "children": [{"name": "कार्तिक", "gender": "male"}]}]}, {"name": "कृष्णपाल(अन्नू) मिश्रा", "gender": "male", "children": [{"name": " अतुल(सोनू)", "gender": "male", "children": [{"name": "१", "gender": "male"}, {"name": "२", "gender": "male"}]}]}, {"name": "बिन्दु(गुलाबकली) मिश्रा", "gender": "female"}, {"name": "नानबुदी", "gender": "female"}, {"name": "मीनू", "gender": "female"}]}, {"name": "राम शिरोमणि मिश्रा", "gender": "male", "children": [{"name": "दयाशङ्कर मिश्रा", "gender": "male", "children": [{"name": "उदय शङ्कर मिश्रा", "gender": "male", "children": [{"name": "आद्या मिश्रा", "gender": "female"}, {"name": "अभ्युदय मिश्रा", "gender": "male"}]}, {"name": "रविशङ्कर मिश्रा(छोटकौ)", "gender": "male", "details": "विवाह से पूर्व ही इनकी आकाल मृत्यु हो गयी थी।"}]}, {"name": "उमाशङ्कर मिश्रा", "gender": "male", "children": [{"name": "अजयशङ्कर(बबलू) मिश्रा", "gender": "male", "children": [{"name": "आशी", "gender": "female"}, {"name": "अनन्या", "gender": "female"}, {"name": "नीशू", "gender": "female"}, {"name": "४"}]}, {"name": "प्रभाशङ्कर(झल्लू) मिश्रा", "gender": "male", "children": [{"name": "पारुल", "gender": "female"}, {"name": "२ (पुत्र)", "gender": "male"}]}, {"name": "विजयशङ्कर(फुन्नू) मिश्रा", "gender": "male"}]}, {"name": "जगिता", "gender": "female", "details": "वुष्णुदत्त तिवारी से विवाहित।", "spouse": {"name": "वुष्णुदत्त तिवारी", "gender": "male"}}]}, {"name": "रमजनिया", "gender": "female", "details": "रामशिरोमणि से आतरसुई में विवाह हुआ।", "spouse": {"name": "रामशिरोमणि", "gender": "male"}}, {"name": "सुदामा प्रसाद मिश्रा", "gender": "male", "children": [{"name": "सुरोश मिश्रा", "gender": "male", "children": [{"name": "प्रमोद मिश्रा (त्यागी)", "gender": "male", "children": [{"name": "सानिया", "gender": "female"}, {"name": "अंशिका", "gender": "female"}]}, {"name": "विनोद मिश्रा (कल्लू)", "gender": "male", "children": [{"name": "१(पुत्री)", "gender": "female"}, {"name": "२(पुत्री)", "gender": "female"}, {"name": "३(पुत्र)", "gender": "male"}]}, {"name": "आनन्द मिश्रा", "gender": "male", "children": [{"name": "स्पर्श", "gender": "male"}, {"name": "अविक", "gender": "male"}]}]}, {"name": "मुनेश मिश्रा", "gender": "male", "children": [{"name": "विकास मिश्रा", "gender": "male"}, {"name": "खुशबू", "gender": "female"}, {"name": "सुभाष मिश्रा", "gender": "male"}]}, {"name": "सुनीता", "gender": "female"}, {"name": "गीता", "gender": "female"}, {"name": "सीता", "gender": "female", "details": "इनका निधन आत्मदाह से हुआ था।"}, {"name": "ममता", "gender": "female"}]}, {"name": "राम सूरत मिश्रा", "gender": "male", "spouse": {"name": "सोनकली मिश्रा", "gender": "female"}, "children": [{"name": "अनुराधा तिवारी", "gender": "female", "spouse": {"name": "अवधेश प्रताप तिवारी", "gender": "male"}, "children": [{"name": "प्रभु नारायण तिवारी", "gender": "male", "spouse": {"name": "रश्मि तिवारी", "gender": "female"}}, {"name": "अंशु तिवारी", "gender": "female", "details": "रवि मिश्रा सङ्ग विवाहित", "spouse": {"name": "रवि मिश्रा", "gender": "male"}}]}, {"name": "श्रवण कुमार मिश्रा", "gender": "male", "spouse": {"name": "शीला मिश्रा", "gender": "female"}, "children": [{"name": "चेतना", "gender": "female", "spouse": {"name": "पङ्कज तिवारी", "gender": "male"}}, {"name": "भावना", "gender": "female"}, {"name": "प्रेरणा", "gender": "female", "url": "https://www.instagram.com/mishraprerna269/"}, {"name": "निशान्त मिश्रा", "gender": "male"}]}, {"name": "आशिष कुमार मिश्रा", "gender": "male", "spouse": {"name": "प्रियाङ्का मिश्रा", "gender": "female"}, "children": [{"name": "इडिका", "gender": "female"}]}]}]}, {"name": "राम आश्रय मिश्रा", "gender": "male", "children": [{"name": "राम प्रसाद मिश्रा", "gender": "male", "children": [{"name": "अशोक कुमार (मुन्नू) मिश्रा", "gender": "male", "children": [{"name": "गुलाव (सिण्टू) मिश्रा", "gender": "male"}, {"name": "टिङ्कल", "gender": "female"}]}, {"name": "मनोज मिश्रा", "gender": "male", "children": [{"name": "१(पुत्री)", "gender": "female"}, {"name": "२(पुत्री)", "gender": "female"}, {"name": "३(पुत्री)", "gender": "female"}, {"name": "दीपू मिश्रा", "gender": "male"}]}, {"name": "प्रदीप मिश्रा (छोटकौ)", "gender": "male", "children": [{"name": "प्रांशु", "gender": "male"}, {"name": "अंश", "gender": "male"}]}, {"name": "गुड्डन्", "gender": "male"}, {"name": "करुणा", "gender": "female"}, {"name": "पुष्पा", "gender": "female"}, {"name": "सुधा", "gender": "female"}]}, {"name": "सावित्री", "gender": "female"}]}, {"name": "नारायण दीन मिश्रा", "gender": "male", "children": [{"name": "सतीश मिश्रा", "gender": "male", "children": [{"name": "नीलू", "gender": "female"}, {"name": "रेखा", "gender": "female"}, {"name": " माधुरी (गुड्डी)", "gender": "female"}]}, {"name": "केशव", "gender": "male", "children": [{"name": "अजीता (रानी)", "gender": "female"}, {"name": "अजय (गुडड्डू)", "gender": "male"}, {"name": "अजीत (अज्जू)", "gender": "male"}]}, {"name": "दिवाकर मिश्रा", "gender": "male", "details": "उमादेवी मिश्रा से विवाहित।", "spouse": {"name": "उमादेवी मिश्रा", "gender": "female"}, "children": [{"name": "विजय कुमार(बिज्जू) मिश्रा", "gender": "male", "details": "सरिता मिश्रा से विवाहित।", "spouse": {"name": "सरिता मिश्रा", "gender": "female"}, "children": [{"name": "शुभम् मिश्रा", "gender": "male", "details": "अन्नपूर्णा तिवारी से विवाहित हुआ। अन्नपूर्णा(प्राची) श्री कमलेश तथा श्रीमति ऊषा तिवारी का पुत्री हैं।", "spouse": {"name": "अन्नपूर्णा तिवारी", "gender": "female"}}]}, {"name": "२"}, {"name": "३"}, {"name": "४"}, {"name": "५"}]}]}]}, {"name": "भगवानप्रसाद मिश्रा", "gender": "male", "details": "आकाशीय बिजली की चपेट में आने से इनकी असमय मृत्यु हो गयी थी।"}]};
+    var data = {"name": "खदेल मिश्रा", "gender": "male", "children": [{"name": "आयोध्याप्रसाद मिश्रा", "gender": "male", "children": [{"name": "बेनीमाधव मिश्रा", "gender": "male", "children": [{"name": "राम कृपाल मिश्रा", "gender": "male", "children": [{"name": "सत्यपाल(कमलेश) मिश्रा", "gender": "male", "children": [{"name": "प्रभात(कन्धैया)", "gender": "male", "children": [{"name": "रौनक", "gender": "male"}, {"name": "ऋतिक", "gender": "male"}]}, {"name": "कृष्ण कुमार(विनीत) मिश्रा", "gender": "male", "children": [{"name": "कार्तिक", "gender": "male"}]}]}, {"name": "कृष्णपाल(अन्नू) मिश्रा", "gender": "male", "children": [{"name": " अतुल(सोनू)", "gender": "male", "children": [{"name": "१", "gender": "male"}, {"name": "२", "gender": "male"}]}]}, {"name": "बिन्दु(गुलाबकली) मिश्रा", "gender": "female"}, {"name": "नानबुदी", "gender": "female"}, {"name": "मीनू", "gender": "female"}]}, {"name": "राम शिरोमणि मिश्रा", "gender": "male", "children": [{"name": "दयाशङ्कर मिश्रा", "gender": "male", "children": [{"name": "उदय शङ्कर मिश्रा", "gender": "male", "children": [{"name": "आद्या मिश्रा", "gender": "female"}, {"name": "अभ्युदय मिश्रा", "gender": "male"}]}, {"name": "रविशङ्कर मिश्रा(छोटकौ)", "gender": "male", "details": "विवाह से पूर्व ही इनकी आकाल मृत्यु हो गयी थी।"}]}, {"name": "उमाशङ्कर मिश्रा", "gender": "male", "children": [{"name": "अजयशङ्कर(बबलू) मिश्रा", "gender": "male", "children": [{"name": "आशी", "gender": "female"}, {"name": "अनन्या", "gender": "female"}, {"name": "नीशू", "gender": "female"}, {"name": "४"}]}, {"name": "प्रभाशङ्कर(झल्लू) मिश्रा", "gender": "male", "children": [{"name": "पारुल", "gender": "female"}, {"name": "२ (पुत्र)", "gender": "male"}]}, {"name": "विजयशङ्कर(फुन्नू) मिश्रा", "gender": "male"}]}, {"name": "जगिता", "gender": "female", "details": "वुष्णुदत्त तिवारी से विवाहित।", "spouse": {"name": "वुष्णुदत्त तिवारी", "gender": "male"}}]}, {"name": "रमजनिया", "gender": "female", "details": "रामशिरोमणि से आतरसुई में विवाह हुआ।", "spouse": {"name": "रामशिरोमणि", "gender": "male"}}, {"name": "सुदामा प्रसाद मिश्रा", "gender": "male", "children": [{"name": "सुरोश मिश्रा", "gender": "male", "children": [{"name": "प्रमोद मिश्रा (त्यागी)", "gender": "male", "children": [{"name": "सानिया", "gender": "female"}, {"name": "अंशिका", "gender": "female"}]}, {"name": "विनोद मिश्रा (कल्लू)", "gender": "male", "children": [{"name": "१(पुत्री)", "gender": "female"}, {"name": "२(पुत्री)", "gender": "female"}, {"name": "३(पुत्र)", "gender": "male"}]}, {"name": "आनन्द मिश्रा", "gender": "male", "children": [{"name": "स्पर्श", "gender": "male"}, {"name": "अविक", "gender": "male"}]}]}, {"name": "मुनेश मिश्रा", "gender": "male", "children": [{"name": "विकास मिश्रा", "gender": "male"}, {"name": "खुशबू", "gender": "female"}, {"name": "सुभाष मिश्रा", "gender": "male"}]}, {"name": "सुनीता", "gender": "female"}, {"name": "गीता", "gender": "female"}, {"name": "सीता", "gender": "female", "details": "इनका निधन आत्मदाह से हुआ था।"}, {"name": "ममता", "gender": "female"}]}, {"name": "राम सूरत मिश्रा", "gender": "male", "spouse": {"name": "सोनकली मिश्रा", "gender": "female"}, "children": [{"name": "अनुराधा तिवारी", "gender": "female", "spouse": {"name": "अवधेश प्रताप तिवारी", "gender": "male"}, "children": [{"name": "प्रभु नारायण तिवारी", "gender": "male", "spouse": {"name": "रश्मि तिवारी", "gender": "female"}, "children": [{"name": "अनय तिवारी", "gender": "male"}, {"name": "अमेय तिवारी", "gender": "male"}]}, {"name": "अंशु तिवारी", "gender": "female", "details": "रवि मिश्रा सङ्ग विवाहित", "spouse": {"name": "रवि मिश्रा", "gender": "male"}, "children": [{"name": "इवान्वी मिश्रा", "gender": "female"}]}]}, {"name": "श्रवण कुमार मिश्रा", "gender": "male", "spouse": {"name": "शीला मिश्रा", "gender": "female", "family": {"isEldest": true, "father": {"name": "शिवाशङ्कर त्रिपाठी", "gender": "male"}, "mother": {"name": "अम्मा त्रिपाठी", "gender": "female"}, "siblings": [{"name": "रजनीश त्रिपाठी", "gender": "male"}, {"name": "मनीष त्रिपाठी", "gender": "male"}, {"name": "आशिष त्रिपाठी", "gender": "male"}, {"name": "रेणु त्रिपाठी", "gender": "female"}]}}, "children": [{"name": "चेतना", "gender": "female", "spouse": {"name": "पङ्कज तिवारी", "gender": "male"}}, {"name": "भावना", "gender": "female"}, {"name": "प्रेरणा", "gender": "female", "url": "https://www.instagram.com/mishraprerna269/"}, {"name": "निशान्त मिश्रा", "gender": "male"}]}, {"name": "आशिष कुमार मिश्रा", "gender": "male", "spouse": {"name": "प्रियाङ्का मिश्रा", "gender": "female"}, "children": [{"name": "इडिका", "gender": "female"}]}]}]}, {"name": "राम आश्रय मिश्रा", "gender": "male", "children": [{"name": "राम प्रसाद मिश्रा", "gender": "male", "children": [{"name": "अशोक कुमार (मुन्नू) मिश्रा", "gender": "male", "children": [{"name": "गुलाव (सिण्टू) मिश्रा", "gender": "male"}, {"name": "टिङ्कल", "gender": "female"}]}, {"name": "मनोज मिश्रा", "gender": "male", "children": [{"name": "१(पुत्री)", "gender": "female"}, {"name": "२(पुत्री)", "gender": "female"}, {"name": "३(पुत्री)", "gender": "female"}, {"name": "दीपू मिश्रा", "gender": "male"}]}, {"name": "प्रदीप मिश्रा (छोटकौ)", "gender": "male", "children": [{"name": "प्रांशु", "gender": "male"}, {"name": "अंश", "gender": "male"}]}, {"name": "गुड्डन्", "gender": "male"}, {"name": "करुणा", "gender": "female"}, {"name": "पुष्पा", "gender": "female"}, {"name": "सुधा", "gender": "female"}]}, {"name": "सावित्री", "gender": "female"}]}, {"name": "नारायण दीन मिश्रा", "gender": "male", "children": [{"name": "सतीश मिश्रा", "gender": "male", "children": [{"name": "नीलू", "gender": "female"}, {"name": "रेखा", "gender": "female"}, {"name": " माधुरी (गुड्डी)", "gender": "female"}]}, {"name": "केशव", "gender": "male", "children": [{"name": "अजीता (रानी)", "gender": "female"}, {"name": "अजय (गुडड्डू)", "gender": "male"}, {"name": "अजीत (अज्जू)", "gender": "male"}]}, {"name": "दिवाकर मिश्रा", "gender": "male", "details": "उमादेवी मिश्रा से विवाहित।", "spouse": {"name": "उमादेवी मिश्रा", "gender": "female"}, "children": [{"name": "विजय कुमार(बिज्जू) मिश्रा", "gender": "male", "details": "सरिता मिश्रा से विवाहित।", "spouse": {"name": "सरिता मिश्रा", "gender": "female"}, "children": [{"name": "शुभम् मिश्रा", "gender": "male", "details": "अन्नपूर्णा तिवारी से विवाहित हुआ। अन्नपूर्णा(प्राची) श्री कमलेश तथा श्रीमति ऊषा तिवारी का पुत्री हैं।", "spouse": {"name": "अन्नपूर्णा तिवारी", "gender": "female"}}]}, {"name": "२"}, {"name": "३"}, {"name": "४"}, {"name": "५"}]}]}]}, {"name": "भगवानप्रसाद मिश्रा", "gender": "male", "details": "आकाशीय बिजली की चपेट में आने से इनकी असमय मृत्यु हो गयी थी।"}]};
 
     /* ── SVG / Zoom setup ── */
+    var mainContainer = document.getElementById('main-tree-panel');
+    var connectorLayer = d3.select('#spouse-connector-layer');
     var margin = {top: 40, right: 160, bottom: 40, left: 160};
-    var container = document.getElementById('tree-container');
+    var spouseMargin = {top: 40, right: 84, bottom: 40, left: 48};
 
-    var svgEl = d3.select('#tree-container').append('svg')
+    var svgEl = d3.select('#main-tree-panel').append('svg')
         .attr('id', 'tree-svg')
         .attr('width', '100%')
         .attr('height', '100%');
 
+    var gViewport = svgEl.append('g');
+    var gMain = gViewport.append('g').attr('class', 'main-tree-layer');
+    var gSpouse = gViewport.append('g').attr('class', 'spouse-tree-layer');
+    var gSpouseConnector = gViewport.append('path').attr('class', 'spouse-tree-link').style('opacity', 0);
+
     var zoom = d3.zoom()
         .scaleExtent([0.12, 3.5])
         .on('zoom', function() {
-                if (d3.event.sourceEvent) {
-                    userHasControlledViewport = true;
-                }
-            gMain.attr('transform', d3.event.transform);
+            if (d3.event.sourceEvent) {
+                userHasControlledViewport = true;
+            }
+            gViewport.attr('transform', d3.event.transform);
+            drawSpouseConnector(false);
         });
 
     svgEl.call(zoom).on('dblclick.zoom', null);
 
-    var gMain = svgEl.append('g');
-
     /* ── Tree layout ── */
-    var i = 0, duration = 750, root;
+    var i = 0, spouseI = 0, duration = 750, root, spouseRoot = null;
     var treeLayout = d3.tree();
+    var spouseTreeLayout = d3.tree();
     var diagonal = d3.linkHorizontal().x(d => d.y).y(d => d.x);
     var fitTimer = null;
     var userHasControlledViewport = false;
+    var selectedMainNode = null;
+    var activeSpouseSourceNode = null;
 
     function isCompactViewport() {
-        return getSize().w < 768;
+        return window.innerWidth < 768;
     }
 
     function getMargins() {
@@ -493,6 +572,16 @@
         return {top: 40, right: 160, bottom: 40, left: 160};
     }
 
+    function getSpouseMargins() {
+        if (window.innerWidth < 420) {
+            return {top: 38, right: 14, bottom: 16, left: 14};
+        }
+        if (window.innerWidth < 768) {
+            return {top: 44, right: 24, bottom: 20, left: 24};
+        }
+        return {top: 52, right: 84, bottom: 40, left: 48};
+    }
+
     function getLayoutConfig() {
         var s = getSize();
         if (s.w < 420) {
@@ -502,6 +591,16 @@
             return {depthSpacing: 185, nodeRadius: 11, textOffset: 16, textSize: 13.5, rowSpacing: 32, fitPaddingX: 20, fitPaddingY: 24};
         }
         return {depthSpacing: 210, nodeRadius: 12, textOffset: 17, textSize: 13, rowSpacing: 38, fitPaddingX: 72, fitPaddingY: 64};
+    }
+
+    function getSpouseLayoutConfig() {
+        if (window.innerWidth < 420) {
+            return {depthSpacing: 128, nodeRadius: 9, textOffset: 13, textSize: 12, rowSpacing: 28, fitPaddingX: 10, fitPaddingY: 12};
+        }
+        if (window.innerWidth < 768) {
+            return {depthSpacing: 150, nodeRadius: 10, textOffset: 14, textSize: 12.5, rowSpacing: 30, fitPaddingX: 16, fitPaddingY: 16};
+        }
+        return {depthSpacing: 168, nodeRadius: 11, textOffset: 15, textSize: 12.5, rowSpacing: 34, fitPaddingX: 24, fitPaddingY: 24};
     }
 
     function getVisibleLeafCount(node) {
@@ -516,29 +615,105 @@
 
     function getSize() {
         return {
-            w: container.clientWidth  || window.innerWidth,
-            h: container.clientHeight || window.innerHeight
+            w: mainContainer.clientWidth || window.innerWidth,
+            h: mainContainer.clientHeight || window.innerHeight
         };
+    }
+
+    function getSpouseSize() {
+        return getSize();
+    }
+
+    function nodeHasSpouse(d) {
+        return d.data && d.data.spouse;
+    }
+
+    function getNodeFootprintUnits(node) {
+        var units = 1;
+
+        if (nodeHasSpouse(node)) {
+            units += 0.95;
+        }
+
+        if (node.children && node.children.length > 1) {
+            units += Math.min(0.35, (node.children.length - 1) * 0.08);
+        }
+
+        return units;
+    }
+
+    function computeTreeLayoutUnits(rootNode) {
+        if (!rootNode) {
+            return 1;
+        }
+
+        rootNode.eachAfter(function(node) {
+            var selfUnits = getNodeFootprintUnits(node);
+            var childUnits = 0;
+
+            if (node.children && node.children.length) {
+                childUnits = node.children.reduce(function(total, child) {
+                    return total + (child._layoutUnits || 1);
+                }, 0);
+            }
+
+            node._layoutFootprint = selfUnits;
+            node._layoutUnits = Math.max(selfUnits, childUnits || 0);
+        });
+
+        return rootNode._layoutUnits || 1;
+    }
+
+    function configureTreeLayout(layout, size, margins, rowSpacing, rootNode) {
+        var layoutUnits = computeTreeLayoutUnits(rootNode);
+        var minimumTreeHeight = layoutUnits * rowSpacing;
+
+        layout.separation(function(a, b) {
+            var base = a.parent === b.parent ? 1.22 : 1.46;
+            var footprintExtra = (((a._layoutFootprint || 1) - 1) + ((b._layoutFootprint || 1) - 1)) * 0.62;
+            var branchExtra = Math.min(1.25, (((a._layoutUnits || 1) - 1) + ((b._layoutUnits || 1) - 1)) * 0.1);
+            return base + footprintExtra + branchExtra;
+        });
+
+        layout.size([
+            Math.max(120, size.h - margins.top - margins.bottom, minimumTreeHeight),
+            Math.max(120, size.w - margins.left - margins.right)
+        ]);
     }
 
     function applySize() {
         margin = getMargins();
-        var s = getSize();
         var layout = getLayoutConfig();
-        var visibleLeafCount = root ? getVisibleLeafCount(root) : 1;
-        var minimumTreeHeight = visibleLeafCount * layout.rowSpacing;
+        configureTreeLayout(treeLayout, getSize(), margin, layout.rowSpacing, root);
+    }
 
-        treeLayout.separation(function(a, b) {
-            return a.parent === b.parent ? 1 : 1.15;
-        });
-        treeLayout.size([
-            Math.max(120, s.h - margin.top - margin.bottom, minimumTreeHeight),
-            Math.max(120, s.w - margin.left - margin.right)
-        ]);
+    function applySpouseSize() {
+        spouseMargin = getSpouseMargins();
+        var layout = getSpouseLayoutConfig();
+        configureTreeLayout(spouseTreeLayout, getSpouseSize(), spouseMargin, layout.rowSpacing, spouseRoot);
     }
 
     function fitTreeToView(animate) {
-        var groupNode = gMain.node();
+        fitTreeGroupToView({
+            group: gViewport,
+            svg: svgEl,
+            zoomBehavior: zoom,
+            size: getSize(),
+            layout: getLayoutConfig(),
+            compact: isCompactViewport()
+        }, animate, 1.15);
+    }
+
+    function fitSpouseTreeToView(animate) {
+        if (!spouseRoot) {
+            return;
+        }
+
+        fitTreeToView(animate);
+    }
+
+    function fitTreeGroupToView(config, animate, desktopMaxScale) {
+        var groupNode = config.group.node();
         if (!groupNode) {
             return;
         }
@@ -548,27 +723,23 @@
             return;
         }
 
-        var s = getSize();
-        var layout = getLayoutConfig();
-        var paddedWidth = bbox.width + layout.fitPaddingX * 2;
-        var paddedHeight = bbox.height + layout.fitPaddingY * 2;
-        var scale = Math.min(s.w / paddedWidth, s.h / paddedHeight);
-        
-        // Mobile needs a more aggressive zoom to make text readable
-        var isSmall = s.w < 420;
-        var maxScale = isSmall ? 2.2 : (isCompactViewport() ? 1.7 : 1.15);
-        var minScale = isSmall ? 0.9 : (isCompactViewport() ? 0.72 : 0.5);
-        
+        var paddedWidth = bbox.width + config.layout.fitPaddingX * 2;
+        var paddedHeight = bbox.height + config.layout.fitPaddingY * 2;
+        var scale = Math.min(config.size.w / paddedWidth, config.size.h / paddedHeight);
+        var isSmall = window.innerWidth < 420;
+        var maxScale = isSmall ? 2.2 : (config.compact ? 1.7 : desktopMaxScale);
+        var minScale = isSmall ? 0.9 : (config.compact ? 0.72 : 0.5);
+
         scale = Math.max(minScale, Math.min(scale, maxScale));
 
-        var translateX = (s.w - bbox.width * scale) / 2 - bbox.x * scale;
-        var translateY = (s.h - bbox.height * scale) / 2 - bbox.y * scale;
+        var translateX = (config.size.w - bbox.width * scale) / 2 - bbox.x * scale;
+        var translateY = (config.size.h - bbox.height * scale) / 2 - bbox.y * scale;
         var targetTransform = d3.zoomIdentity.translate(translateX, translateY).scale(scale);
 
         if (animate) {
-            svgEl.transition().duration(320).call(zoom.transform, targetTransform);
+            config.svg.transition().duration(320).call(config.zoomBehavior.transform, targetTransform);
         } else {
-            svgEl.call(zoom.transform, targetTransform);
+            config.svg.call(config.zoomBehavior.transform, targetTransform);
         }
     }
 
@@ -579,11 +750,13 @@
         }, delay || 0);
     }
 
-    applySize();
-
-    root = d3.hierarchy(data, d => d.children);
-    root.x0 = (getSize().h - margin.top - margin.bottom) / 2;
-    root.y0 = 0;
+    function scheduleSpouseFit(animate, delay) {
+        clearTimeout(fitTimer);
+        fitTimer = setTimeout(function() {
+            fitTreeToView(animate);
+            drawSpouseConnector(false);
+        }, delay || 0);
+    }
 
     function collapse(d) {
         if (d.children) {
@@ -593,6 +766,495 @@
         }
     }
 
+    function cloneData(nodeData) {
+        var cloned = {
+            name: nodeData.name,
+            gender: nodeData.gender
+        };
+
+        if (nodeData.details) {
+            cloned.details = nodeData.details;
+        }
+        if (nodeData.url) {
+            cloned.url = nodeData.url;
+        }
+        if (nodeData.spouse) {
+            cloned.spouse = {
+                name: nodeData.spouse.name,
+                gender: nodeData.spouse.gender
+            };
+            if (nodeData.spouse.details) {
+                cloned.spouse.details = nodeData.spouse.details;
+            }
+        }
+
+        return cloned;
+    }
+
+    function buildSpouseRootFromNode(sourceNode) {
+        if (!sourceNode || !sourceNode.data || !sourceNode.data.spouse) {
+            return null;
+        }
+
+        // Check if this is a daughter-in-law (has ancestral family data)
+        if (sourceNode.data.spouse.family) {
+            return buildBackwardFamilyTree(sourceNode);
+        }
+
+        // Otherwise, build forward tree (for daughters of the family)
+        var collapsedMap = {};
+
+        function cloneBranch(node, path, rootOverride) {
+            var branchData = rootOverride ? {
+                name: node.data.spouse.name,
+                gender: node.data.spouse.gender,
+                spouse: {
+                    name: node.data.name,
+                    gender: node.data.gender
+                }
+            } : cloneData(node.data);
+
+            var sourceChildren = node.children || node._children || [];
+            if (sourceChildren.length) {
+                branchData.children = sourceChildren.map(function(child, index) {
+                    return cloneBranch(child, path.concat(index), false);
+                });
+            }
+
+            if (path.length && !node.children && node._children && node._children.length) {
+                collapsedMap[path.join('.')] = true;
+            }
+
+            return branchData;
+        }
+
+        function applyCollapsedState(node, path) {
+            if (node.children) {
+                node.children.forEach(function(child, index) {
+                    applyCollapsedState(child, path.concat(index));
+                });
+            }
+
+            if (collapsedMap[path.join('.')] && node.children) {
+                node._children = node.children;
+                node.children = null;
+            }
+        }
+
+        var spouseData = cloneBranch(sourceNode, [], true);
+        var hierarchy = d3.hierarchy(spouseData, function(d) { return d.children; });
+        applyCollapsedState(hierarchy, []);
+        hierarchy.x0 = (getSpouseSize().h - spouseMargin.top - spouseMargin.bottom) / 2;
+        hierarchy.y0 = 0;
+        return hierarchy;
+    }
+
+    function buildBackwardFamilyTree(sourceNode) {
+        var spouseData = sourceNode.data.spouse;
+        var family = spouseData.family;
+        
+        if (!family || !family.father) {
+            return null;
+        }
+
+        // Build the father as root with mother as spouse and all siblings as children
+        var fatherData = {
+            name: family.father.name,
+            gender: family.father.gender,
+            spouse: family.mother ? {
+                name: family.mother.name,
+                gender: family.mother.gender
+            } : null,
+            children: []
+        };
+
+        var originChild = {
+            name: spouseData.name,
+            gender: spouseData.gender,
+            isFamilyOrigin: true,
+            spouse: {
+                name: sourceNode.data.name,
+                gender: sourceNode.data.gender
+            }
+        };
+
+        // Add all siblings (including the spouse herself)
+        if (family.siblings && family.siblings.length) {
+            fatherData.children = family.siblings.map(function(sibling) {
+                return {
+                    name: sibling.name,
+                    gender: sibling.gender
+                };
+            });
+        }
+
+        // Add the spouse herself to the sibling list in the requested birth order.
+        if (family.isEldest) {
+            fatherData.children.unshift(originChild);
+        } else {
+            fatherData.children.push(originChild);
+        }
+
+        var hierarchy = d3.hierarchy(fatherData, function(d) { return d.children; });
+        hierarchy._treeMode = 'backward';
+        hierarchy.x0 = (getSpouseSize().h - spouseMargin.top - spouseMargin.bottom) / 2;
+        hierarchy.y0 = 0;
+        return hierarchy;
+    }
+
+    function setConnectorCanvasSize() {
+        connectorLayer
+            .attr('width', window.innerWidth)
+            .attr('height', window.innerHeight)
+            .attr('viewBox', '0 0 ' + window.innerWidth + ' ' + window.innerHeight);
+    }
+
+    function getMainTreeLowerBound() {
+        if (!root) {
+            return null;
+        }
+
+        return root.descendants().reduce(function(maxX, node) {
+            return Math.max(maxX, node.x || 0);
+        }, 0);
+    }
+
+    function getSpouseFocusNode(spouseNodes) {
+        if (!spouseNodes || !spouseNodes.length) {
+            return spouseRoot;
+        }
+
+        return spouseNodes.find(function(node) {
+            return !!(node.data && node.data.isFamilyOrigin);
+        }) || spouseRoot;
+    }
+
+    function getSpousePlacement(spouseNodes) {
+        if (!activeSpouseSourceNode || !spouseRoot) {
+            return null;
+        }
+
+        var mainLayout = getLayoutConfig();
+        var spouseLayout = getSpouseLayoutConfig();
+        var lowerBound = getMainTreeLowerBound();
+        var focusNode = getSpouseFocusNode(spouseNodes);
+        var minimumRootOffset = isCompactViewport()
+            ? Math.max(mainLayout.rowSpacing * 4.2, spouseLayout.rowSpacing * 3.4, 122)
+            : Math.max(mainLayout.rowSpacing * 4.8, spouseLayout.rowSpacing * 3.9, 168);
+        var spouseTopOffset = 0;
+
+        if (spouseNodes && spouseNodes.length) {
+            spouseTopOffset = spouseNodes.reduce(function(minOffset, node) {
+                return Math.min(minOffset, node.x - focusNode.x);
+            }, 0);
+        }
+
+        var requiredFocusY = activeSpouseSourceNode.x + minimumRootOffset;
+        if (lowerBound !== null) {
+            requiredFocusY = Math.max(requiredFocusY, lowerBound + spouseLayout.rowSpacing * 1.8 - spouseTopOffset);
+        }
+
+        return {
+            treeX: activeSpouseSourceNode.y - focusNode.y,
+            treeY: requiredFocusY - focusNode.x,
+            anchorX: activeSpouseSourceNode.y,
+            anchorY: requiredFocusY
+        };
+    }
+
+    function getConnectorPath() {
+        var trigger = document.getElementById('spouse-tree-trigger');
+        var placement = getSpousePlacement(spouseRoot.descendants ? spouseRoot.descendants() : null);
+        if (!trigger || !spouseRoot || !placement || selectedMainNode !== activeSpouseSourceNode) {
+            return null;
+        }
+
+        var triggerRect = trigger.getBoundingClientRect();
+        if (!triggerRect.width) {
+            return null;
+        }
+
+        var treeRect = mainContainer.getBoundingClientRect();
+        var viewportTransform = d3.zoomTransform(svgEl.node());
+        var endX = treeRect.left + viewportTransform.x + placement.anchorX * viewportTransform.k;
+        var endY = treeRect.top + viewportTransform.y + placement.anchorY * viewportTransform.k;
+
+        var startX = triggerRect.left + triggerRect.width / 2;
+        var startY = triggerRect.top;
+        var bendY = startY - Math.max(44, Math.min(96, startY - endY - 18));
+
+        return 'M ' + startX + ' ' + startY +
+            ' L ' + startX + ' ' + bendY +
+            ' L ' + endX + ' ' + bendY +
+            ' L ' + endX + ' ' + endY;
+    }
+
+    function hideSpouseConnector() {
+        connectorLayer.selectAll('path.connector-path').remove();
+    }
+
+    function drawSpouseConnector(animate) {
+        setConnectorCanvasSize();
+        var pathData = getConnectorPath();
+        if (!pathData) {
+            hideSpouseConnector();
+            return;
+        }
+
+        var connector = connectorLayer.selectAll('path.connector-path').data([pathData]);
+        var connectorEnter = connector.enter().append('path').attr('class', 'connector-path');
+        var connectorMerged = connectorEnter.merge(connector)
+            .attr('d', pathData)
+            .style('opacity', 0.95);
+
+        connector.exit().remove();
+
+        if (animate) {
+            var totalLength = connectorMerged.node().getTotalLength();
+            connectorMerged
+                .attr('stroke-dasharray', totalLength + ' ' + totalLength)
+                .attr('stroke-dashoffset', totalLength)
+                .transition()
+                .duration(380)
+                .ease(d3.easeCubicOut)
+                .attr('stroke-dashoffset', 0)
+                .style('opacity', 0.95);
+        } else {
+            connectorMerged
+                .attr('stroke-dasharray', null)
+                .attr('stroke-dashoffset', null)
+                .style('opacity', 0.95);
+        }
+    }
+
+    function refreshTreesForPanelChange(keepView) {
+        var prevDuration = duration;
+        duration = 0;
+        update(root);
+        if (spouseRoot) {
+            updateSpouseTree(spouseRoot);
+        }
+        duration = prevDuration;
+        if (!keepView) {
+            scheduleFit(false, 0);
+        }
+        drawSpouseConnector(false);
+    }
+
+    function clearSpouseTree(keepView) {
+        var fadeDuration = 220;
+        activeSpouseSourceNode = null;
+        spouseRoot = null;
+        spouseI = 0;
+
+        gSpouse.interrupt().transition()
+            .duration(fadeDuration)
+            .style('opacity', 0)
+            .on('end', function() {
+                gSpouse.selectAll('*').remove();
+                gSpouse.attr('transform', null);
+                gSpouse.style('opacity', 1);
+            });
+
+        gSpouseConnector.interrupt().transition()
+            .duration(fadeDuration)
+            .style('opacity', 0);
+
+        hideSpouseConnector();
+        refreshTreesForPanelChange(keepView);
+    }
+
+    function hideSpouseTreeTemporarily() {
+        gSpouse.attr('display', 'none');
+        gSpouseConnector.style('opacity', 0);
+        hideSpouseConnector();
+    }
+
+    function showSpouseTreeTemporarily() {
+        gSpouse.attr('display', null);
+    }
+
+    function isMainNodeVisible(nodeRef) {
+        if (!nodeRef || !root) {
+            return false;
+        }
+
+        return root.descendants().some(function(node) {
+            return node === nodeRef;
+        });
+    }
+
+    function refreshOpenSpouseTree(sourceNode) {
+        if (!spouseRoot || !activeSpouseSourceNode) {
+            return;
+        }
+
+        if (!isMainNodeVisible(activeSpouseSourceNode)) {
+            hideSpouseTreeTemporarily();
+            return;
+        }
+
+        showSpouseTreeTemporarily();
+
+        if (sourceNode && activeSpouseSourceNode === sourceNode && sourceNode.data.spouse) {
+            spouseRoot = buildSpouseRootFromNode(sourceNode);
+        }
+
+        if (spouseRoot) {
+            updateSpouseTree(spouseRoot);
+            drawSpouseConnector(false);
+        }
+    }
+
+    function animateSpouseTreeTransition(femaleNode, callback) {
+        var layout = getLayoutConfig();
+        var spouseLayout = getSpouseLayoutConfig();
+        
+        // Calculate positions
+        var femalePos = {
+            x: femaleNode.y,
+            y: femaleNode.x
+        };
+        
+        // Build spouse tree to get anchor point
+        var tempSpouseRoot = buildSpouseRootFromNode(femaleNode);
+        if (!tempSpouseRoot) {
+            if (callback) callback();
+            return;
+        }
+        
+        applySpouseSize();
+        var treeData = spouseTreeLayout(tempSpouseRoot);
+        var nodes = treeData.descendants();
+        var mainDepthSpacing = getLayoutConfig().depthSpacing;
+        nodes.forEach(function(d) {
+            d.y = d.depth * mainDepthSpacing;
+        });
+        
+        var spousePlacement = getSpousePlacement(nodes);
+        if (!spousePlacement) {
+            if (callback) callback();
+            return;
+        }
+        
+        var spousePos = {
+            x: spousePlacement.anchorX,
+            y: spousePlacement.anchorY
+        };
+        
+        // Create animation layer
+        var animLayer = gViewport.append('g').attr('class', 'transition-animation-layer');
+        
+        // Create female node clone
+        var femaleGroup = animLayer.append('g')
+            .attr('transform', 'translate(' + femalePos.x + ',' + femalePos.y + ')');
+        
+        femaleGroup.append('circle')
+            .attr('r', layout.nodeRadius)
+            .style('fill', cssVar('--node-fill'))
+            .style('stroke', cssVar('--female-color'))
+            .style('stroke-width', '2.5px');
+        
+        femaleGroup.append('text')
+            .attr('x', layout.textOffset)
+            .attr('dy', '.35em')
+            .style('font-size', layout.textSize + 'px')
+            .style('fill', cssVar('--text'))
+            .text(femaleNode.data.name);
+        
+        // Create spouse node clone at spouse position (starts semi-transparent)
+        var spouseGroup = animLayer.append('g')
+            .attr('transform', 'translate(' + spousePos.x + ',' + spousePos.y + ')')
+            .style('opacity', 0.3);
+        
+        spouseGroup.append('circle')
+            .attr('r', spouseLayout.nodeRadius)
+            .style('fill', cssVar('--node-fill'))
+            .style('stroke', femaleNode.data.spouse.gender === 'male' ? cssVar('--male-color') : cssVar('--female-color'))
+            .style('stroke-width', '2.5px');
+        
+        spouseGroup.append('text')
+            .attr('x', spouseLayout.textOffset)
+            .attr('dy', '.35em')
+            .style('font-size', spouseLayout.textSize + 'px')
+            .style('fill', cssVar('--text'))
+            .text(femaleNode.data.spouse.name);
+        
+        // Animation duration
+        var animDuration = 650;
+        
+        // Animate female node moving to spouse position
+        femaleGroup.transition()
+            .duration(animDuration)
+            .ease(d3.easeCubicInOut)
+            .attr('transform', 'translate(' + spousePos.x + ',' + spousePos.y + ')')
+            .style('opacity', 0.4)
+            .on('end', function() {
+                animLayer.remove();
+                if (callback) callback();
+            });
+        
+        // Animate spouse node fading in fully
+        spouseGroup.transition()
+            .duration(animDuration)
+            .ease(d3.easeCubicInOut)
+            .style('opacity', 1);
+        
+        // Create a dashed line that animates
+        var dashLine = animLayer.append('line')
+            .attr('x1', femalePos.x)
+            .attr('y1', femalePos.y)
+            .attr('x2', spousePos.x)
+            .attr('y2', spousePos.y)
+            .style('stroke', cssVar('--link-color'))
+            .style('stroke-width', '1.5px')
+            .style('stroke-dasharray', '5,5')
+            .style('opacity', 0);
+        
+        dashLine.transition()
+            .duration(animDuration / 3)
+            .style('opacity', 0.6)
+            .transition()
+            .duration(animDuration * 2 / 3)
+            .style('opacity', 0);
+    }
+
+    function openSpouseTreeFromSelection() {
+        if (!selectedMainNode || !selectedMainNode.data || !selectedMainNode.data.spouse) {
+            return;
+        }
+
+        // Hide spouse tree initially for animation
+        gSpouse.style('opacity', 0);
+        
+        activeSpouseSourceNode = selectedMainNode;
+        spouseRoot = buildSpouseRootFromNode(selectedMainNode);
+        if (!spouseRoot) {
+            return;
+        }
+
+        update(root);
+        updateSpouseTree(spouseRoot);
+        
+        // Start animation
+        animateSpouseTreeTransition(selectedMainNode, function() {
+            // After animation, fade in the spouse tree
+            gSpouse.transition()
+                .duration(300)
+                .ease(d3.easeQuadOut)
+                .style('opacity', 1);
+            
+            drawSpouseConnector(true);
+        });
+        
+        showDetails(selectedMainNode.data, selectedMainNode);
+    }
+
+    setConnectorCanvasSize();
+    applySize();
+    root = d3.hierarchy(data, function(d) { return d.children; });
+    root.x0 = (getSize().h - margin.top - margin.bottom) / 2;
+    root.y0 = 0;
     root.children.forEach(collapse);
 
     var initialDuration = duration;
@@ -602,12 +1264,18 @@
     scheduleFit(false, 0);
 
     window.addEventListener('resize', function() {
+        setConnectorCanvasSize();
         applySize();
+        applySpouseSize();
         var prev = duration;
         duration = 0;
         update(root);
+        if (spouseRoot) {
+            updateSpouseTree(spouseRoot);
+        }
         duration = prev;
         scheduleFit(false, 0);
+        drawSpouseConnector(false);
     });
 
     /* ── CSS variable reader (lets d3 use theme colours) ── */
@@ -647,6 +1315,9 @@
             .attr('class', 'node-circle')
             .attr('r', 1e-6)
             .style('fill', d => {
+                if (d.data.gender === 'female' && d.data.spouse && activeSpouseSourceNode === d && spouseRoot) {
+                    return openFill;
+                }
                 if (d._children) return cssVar('--node-collapsed');
                 return openFill;
             })
@@ -659,17 +1330,29 @@
         // Spouse circle (if exists)
         nodeEnter.each(function(d) {
             if (d.data.spouse) {
-                d3.select(this).insert('circle', '.node-circle')
+                var spouseGroup = d3.select(this);
+
+                spouseGroup.insert('circle', '.node-circle')
                     .attr('class', 'spouse-circle')
                     .attr('r', 1e-6)
                     .attr('cy', 0) // Starts at 0, transitions to layout.nodeRadius/2 for 50% overlap
                     .style('fill', openFill)
                     .style('stroke', d.data.spouse.gender === 'female' ? femaleClr : maleClr)
                     .style('stroke-opacity', 0.8);
+
+                spouseGroup.append('text')
+                    .attr('class', 'spouse-label')
+                    .attr('x', layout.textOffset)
+                    .attr('y', layout.nodeRadius * 2 + 4)
+                    .attr('text-anchor', 'start')
+                    .style('font-size', Math.max(layout.textSize - 1, 11) + 'px')
+                    .style('fill', textClr)
+                    .text(d.data.spouse.name);
             }
         });
 
         nodeEnter.append('text')
+            .attr('class', 'node-label')
             .attr('dy', '.35em')
             .attr('x', layout.textOffset)
             .attr('text-anchor', 'start')
@@ -685,6 +1368,9 @@
         nodeUpdate.select('circle.node-circle')
             .attr('r', layout.nodeRadius)
             .style('fill', d => {
+                if (d.data.gender === 'female' && d.data.spouse && activeSpouseSourceNode === d && spouseRoot) {
+                    return openFill;
+                }
                 if (d._children) {
                     if (d.data.gender === 'male') return maleClr;
                     if (d.data.gender === 'female') return femaleClr;
@@ -710,18 +1396,25 @@
                 return strokeClr;
             });
 
-        nodeUpdate.select('text')
+        nodeUpdate.select('text.node-label')
             .attr('dy', '.35em')
             .attr('x', layout.textOffset)
             .attr('text-anchor', 'start')
             .style('font-size', layout.textSize + 'px')
             .style('fill', textClr);
 
+        nodeUpdate.select('text.spouse-label')
+            .attr('x', layout.textOffset)
+            .attr('y', layout.nodeRadius * 2 + 4)
+            .attr('text-anchor', 'start')
+            .style('font-size', Math.max(layout.textSize - 1, 11) + 'px')
+            .style('fill', textClr);
+
         var nodeExit = node.exit().transition().duration(duration)
             .attr('transform', d => 'translate(' + source.y + ',' + source.x + ')')
             .remove();
         nodeExit.select('circle').attr('r', 1e-6);
-        nodeExit.select('text').style('fill-opacity', 1e-6);
+        nodeExit.selectAll('text').style('fill-opacity', 1e-6);
 
         /* Links */
         var link = gMain.selectAll('path.link')
@@ -749,8 +1442,201 @@
         nodes.forEach(d => { d.x0 = d.x; d.y0 = d.y; });
     }
 
+    function updateSpouseTree(source) {
+        if (!spouseRoot) {
+            return;
+        }
+
+        applySpouseSize();
+        var treeData = spouseTreeLayout(spouseRoot);
+        var nodes = treeData.descendants();
+        var links = treeData.descendants().slice(1);
+        var layout = getSpouseLayoutConfig();
+        var mainDepthSpacing = getLayoutConfig().depthSpacing;
+
+        nodes.forEach(function(d) {
+            d.y = d.depth * mainDepthSpacing;
+        });
+
+        var placement = getSpousePlacement(nodes);
+        if (placement) {
+            gSpouse.transition()
+                .duration(duration)
+                .attr('transform', 'translate(' + placement.treeX + ',' + placement.treeY + ')');
+            gSpouseConnector.transition()
+                .duration(duration)
+                .attr('d', 'M ' + activeSpouseSourceNode.y + ' ' + activeSpouseSourceNode.x + ' L ' + placement.anchorX + ' ' + placement.anchorY)
+                .style('opacity', 1);
+        }
+
+        var collapseClr = cssVar('--node-collapsed');
+        var openFill = cssVar('--node-fill');
+        var strokeClr = cssVar('--node-stroke');
+        var textClr = cssVar('--text');
+        var linkClr = cssVar('--link-color');
+        var maleClr = cssVar('--male-color');
+        var femaleClr = cssVar('--female-color');
+
+        var node = gSpouse.selectAll('g.node')
+            .data(nodes, function(d) { return d.id || (d.id = 'sp-' + (++spouseI)); });
+
+        var nodeEnter = node.enter().append('g')
+            .attr('class', 'node')
+            .attr('transform', function() {
+                return 'translate(' + source.y0 + ',' + source.x0 + ')';
+            })
+            .on('click', clickSpouse);
+
+        nodeEnter.append('circle')
+            .attr('class', 'node-circle')
+            .attr('r', 1e-6)
+            .style('fill', function(d) {
+                if (d._children) return collapseClr;
+                return openFill;
+            })
+            .style('stroke', function(d) {
+                if (d.data.gender === 'male') return maleClr;
+                if (d.data.gender === 'female') return femaleClr;
+                return strokeClr;
+            });
+
+        nodeEnter.each(function(d) {
+            if (d.data.spouse) {
+                var spouseGroup = d3.select(this);
+
+                spouseGroup.insert('circle', '.node-circle')
+                    .attr('class', 'spouse-circle')
+                    .attr('r', 1e-6)
+                    .attr('cy', 0)
+                    .style('fill', openFill)
+                    .style('stroke', d.data.spouse.gender === 'female' ? femaleClr : maleClr)
+                    .style('stroke-opacity', 0.8);
+
+                spouseGroup.append('text')
+                    .attr('class', 'spouse-label')
+                    .attr('x', layout.textOffset)
+                    .attr('y', layout.nodeRadius * 2 + 4)
+                    .attr('text-anchor', 'start')
+                    .style('font-size', Math.max(layout.textSize - 1, 11) + 'px')
+                    .style('fill', textClr)
+                    .text(d.data.spouse.name);
+            }
+        });
+
+        nodeEnter.append('text')
+            .attr('class', 'node-label')
+            .attr('dy', '.35em')
+            .attr('x', layout.textOffset)
+            .attr('text-anchor', 'start')
+            .style('font-size', layout.textSize + 'px')
+            .style('fill', textClr)
+            .text(function(d) { return d.data.name; });
+
+        var nodeUpdate = nodeEnter.merge(node);
+
+        nodeUpdate.transition().duration(duration)
+            .attr('transform', function(d) {
+                return 'translate(' + d.y + ',' + d.x + ')';
+            });
+
+        nodeUpdate.select('circle.node-circle')
+            .attr('r', layout.nodeRadius)
+            .style('fill', function(d) {
+                if (d._children) {
+                    if (d.data.gender === 'male') return maleClr;
+                    if (d.data.gender === 'female') return femaleClr;
+                    return collapseClr;
+                }
+                return openFill;
+            })
+            .style('stroke', function(d) {
+                if (d.data.gender === 'male') return maleClr;
+                if (d.data.gender === 'female') return femaleClr;
+                return strokeClr;
+            });
+
+        nodeUpdate.select('circle.spouse-circle')
+            .transition().duration(duration)
+            .attr('r', layout.nodeRadius)
+            .attr('cy', layout.nodeRadius)
+            .style('fill', openFill)
+            .style('stroke', function(d) {
+                if (d.data.spouse && d.data.spouse.gender === 'female') return femaleClr;
+                if (d.data.spouse && d.data.spouse.gender === 'male') return maleClr;
+                return strokeClr;
+            });
+
+        nodeUpdate.select('text.node-label')
+            .attr('dy', '.35em')
+            .attr('x', layout.textOffset)
+            .attr('text-anchor', 'start')
+            .style('font-size', layout.textSize + 'px')
+            .style('fill', textClr);
+
+        nodeUpdate.select('text.spouse-label')
+            .attr('x', layout.textOffset)
+            .attr('y', layout.nodeRadius * 2 + 4)
+            .attr('text-anchor', 'start')
+            .style('font-size', Math.max(layout.textSize - 1, 11) + 'px')
+            .style('fill', textClr);
+
+        var nodeExit = node.exit().transition().duration(duration)
+            .attr('transform', function() {
+                return 'translate(' + source.y + ',' + source.x + ')';
+            })
+            .remove();
+        nodeExit.select('circle').attr('r', 1e-6);
+        nodeExit.selectAll('text').style('fill-opacity', 1e-6);
+
+        var link = gSpouse.selectAll('path.link')
+            .data(links, function(d) { return d.id; });
+
+        var linkEnter = link.enter().insert('path', 'g')
+            .attr('class', 'link')
+            .style('stroke', linkClr)
+            .attr('d', function() {
+                var origin = {x: source.x0, y: source.y0};
+                return diagonal({source: origin, target: origin});
+            });
+
+        linkEnter.merge(link).transition().duration(duration)
+            .style('stroke', linkClr)
+            .attr('d', function(d) {
+                return diagonal({source: d.parent, target: d});
+            });
+
+        link.exit().transition().duration(duration)
+            .attr('d', function() {
+                var origin = {x: source.x, y: source.y};
+                return diagonal({source: origin, target: origin});
+            })
+            .remove();
+
+        nodes.forEach(function(d) { d.x0 = d.x; d.y0 = d.y; });
+    }
+
     /* ── Click handler ── */
     function click(d) {
+        if (d.data.gender === 'female') {
+            selectedMainNode = d;
+            showDetails(d.data, d);
+            var closedSpouseTree = false;
+
+            if (d.data.spouse) {
+                if (activeSpouseSourceNode === d && spouseRoot) {
+                    clearSpouseTree(true);
+                    closedSpouseTree = true;
+                } else {
+                    openSpouseTreeFromSelection();
+                }
+            }
+
+            if (!closedSpouseTree && isCompactViewport() && !userHasControlledViewport) {
+                scheduleFit(true, duration + 40);
+            }
+            return;
+        }
+
         if (d.children) {
             d._children = d.children;
             d.children  = null;
@@ -758,19 +1644,50 @@
             d.children  = d._children;
             d._children = null;
         }
+        selectedMainNode = d;
         update(d);
-        showDetails(d.data);
+        showDetails(d.data, d);
+
+        refreshOpenSpouseTree(d);
+
         if (isCompactViewport() && !userHasControlledViewport) {
             scheduleFit(true, duration + 40);
         }
     }
 
-    /* ── Bottom panel ── */
-    function showDetails(nodeData) {
-        var nameHtml = escHtml(nodeData.name);
-        if (nodeData.spouse) {
-            nameHtml += ' & ' + escHtml(nodeData.spouse.name);
+    function clickSpouse(d) {
+        if (d.children) {
+            d._children = d.children;
+            d.children = null;
+        } else {
+            d.children = d._children;
+            d._children = null;
         }
+
+        updateSpouseTree(d);
+        scheduleFit(true, duration + 40);
+    }
+
+    /* ── Bottom panel ── */
+    function showDetails(nodeData, nodeRef) {
+        if (nodeRef) {
+            selectedMainNode = nodeRef;
+        }
+
+        var triggerReady = !!(nodeRef && nodeRef.data && nodeRef.data.spouse);
+        var spouseTreeOpen = !!(triggerReady && activeSpouseSourceNode === nodeRef && spouseRoot);
+        var nameHtml = '<span>' + escHtml(nodeData.name) + '</span>';
+
+        if (nodeData.spouse) {
+            if (triggerReady) {
+                nameHtml += ' &amp; <button type="button" id="spouse-tree-trigger" class="bottombar-spouse-trigger' +
+                    (spouseTreeOpen ? ' is-active' : '') + '" aria-expanded="' +
+                    (spouseTreeOpen ? 'true' : 'false') + '">' + escHtml(nodeData.spouse.name) + '</button>';
+            } else {
+                nameHtml += ' &amp; ' + escHtml(nodeData.spouse.name);
+            }
+        }
+
         document.getElementById('bottombar-name').innerHTML = nameHtml;
         var det = document.getElementById('bottombar-details');
         if (nodeData.url) {
@@ -781,11 +1698,32 @@
         } else {
             det.textContent = 'कोई विशेष जानकारी उपलब्ध नहीं।';
         }
+
+        var trigger = document.getElementById('spouse-tree-trigger');
+        if (trigger) {
+            trigger.addEventListener('click', function() {
+                if (activeSpouseSourceNode === selectedMainNode && spouseRoot) {
+                    clearSpouseTree(true);
+                    showDetails(selectedMainNode.data, selectedMainNode);
+                    return;
+                }
+
+                openSpouseTreeFromSelection();
+            });
+        }
+
+        if (spouseTreeOpen) {
+            drawSpouseConnector(false);
+        } else {
+            hideSpouseConnector();
+        }
+
         document.getElementById('bottombar').classList.add('visible');
     }
 
     document.getElementById('bottombar-close').addEventListener('click', function() {
         document.getElementById('bottombar').classList.remove('visible');
+        clearSpouseTree(true);
     });
 
     /* ── Search ── */
@@ -816,7 +1754,9 @@
 
     function focusNode(node) {
         expandToNode(node);
+        selectedMainNode = node;
         update(root);
+        refreshOpenSpouseTree(node);
         /* After the 750 ms D3 transition, highlight and pan to centre */
         setTimeout(function() {
             gMain.selectAll('g.node').classed('node--highlighted', false);
@@ -858,7 +1798,7 @@
                     searchInput.value = n.data.name;
                     searchDropdown.classList.remove('open');
                     focusNode(n);
-                    showDetails(n.data);
+                    showDetails(n.data, n);
                 });
                 searchDropdown.appendChild(div);
             });
